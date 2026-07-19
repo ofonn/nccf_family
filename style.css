@@ -538,6 +538,153 @@ button.danger-outline:hover, .btn.danger-outline:hover {
   display: none;
 }
 
+/* Redesigned Floating Control Dock Styles */
+.control-dock-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+/* Floating Trigger Circle */
+.dock-trigger {
+  width: 56px;
+  height: 56px;
+  border-radius: 50% !important;
+  background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-secondary) 100%) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.3) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 15px rgba(227, 169, 74, 0.25) !important;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+  padding: 0 !important;
+}
+
+.dock-trigger .trigger-icon {
+  font-size: 24px;
+  transition: transform 0.4s ease;
+  color: var(--ink) !important;
+}
+
+.dock-trigger:hover {
+  transform: scale(1.1) rotate(30deg) !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 25px rgba(227, 169, 74, 0.4) !important;
+}
+
+.control-dock-container.active .dock-trigger {
+  transform: rotate(90deg) scale(0.95) !important;
+  background: linear-gradient(135deg, #E74C3C 0%, #C0392B 100%) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3) !important;
+}
+
+/* Expanded Dock Options Panel */
+.dock-content {
+  background: rgba(16, 12, 21, 0.94);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(20px);
+  transform: scale(0.7) translateY(20px);
+  opacity: 0;
+  pointer-events: none;
+  transform-origin: bottom right;
+  transition: all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  min-width: 250px;
+}
+
+.control-dock-container.active .dock-content {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* LED Status Indicator inside Dock */
+.dock-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: #B9AEC4;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 8px;
+  font-family: monospace;
+}
+
+/* Buttons grid inside Dock */
+.dock-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-start;
+  margin-top: 5px;
+}
+
+/* Circular Micro dock buttons */
+.dock-btn {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 50% !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: var(--cream) !important;
+  font-size: 18px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2) !important;
+  padding: 0 !important;
+  text-transform: none !important;
+}
+
+.dock-btn:hover {
+  background: rgba(255, 255, 255, 0.14) !important;
+  border-color: var(--accent-color) !important;
+  transform: scale(1.12) translateY(-3px) !important;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.35), 0 0 10px rgba(227, 169, 74, 0.2) !important;
+}
+
+/* Green save button styling */
+.dock-btn.save-btn {
+  background: linear-gradient(135deg, #2ECC71 0%, #27AE60 100%) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+.dock-btn.save-btn:hover {
+  box-shadow: 0 6px 18px rgba(46, 204, 113, 0.4) !important;
+}
+
+/* Red cancel button styling */
+.dock-btn.cancel-btn {
+  background: linear-gradient(135deg, #E74C3C 0%, #C0392B 100%) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+.dock-btn.cancel-btn:hover {
+  box-shadow: 0 6px 18px rgba(231, 76, 60, 0.4) !important;
+}
+
+/* Dashed Red Reset button styling */
+.dock-btn.reset-btn {
+  border: 1px dashed rgba(231, 76, 60, 0.6) !important;
+  color: #E74C3C !important;
+  background: transparent !important;
+}
+.dock-btn.reset-btn:hover {
+  background: rgba(231, 76, 60, 0.1) !important;
+  border-color: #E74C3C !important;
+}
+
 /* Inline Editing styling */
 td.editable {
   cursor: pointer;

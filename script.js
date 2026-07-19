@@ -97,18 +97,39 @@ function setupCommonEventListeners() {
     });
   }
 
-  // Collapsible Board toggle logic
-  document.querySelectorAll(".collapsible-board").forEach(board => {
-    const trigger = board.querySelector(".toggle-trigger");
-    if (trigger) {
-      trigger.addEventListener("click", (e) => {
-        // Prevent toggle if clicking links or buttons inside the trigger
-        if (e.target.closest("button") || e.target.closest("a")) return;
-        
-        board.classList.toggle("active");
-      });
-    }
-  });
+  // Floating Control Dock toggle logic
+  const dock = document.getElementById("control-dock");
+  const dockTrigger = document.getElementById("dock-trigger");
+  if (dock && dockTrigger) {
+    dockTrigger.addEventListener("click", (e) => {
+      e.stopPropagation();
+      dock.classList.toggle("active");
+      
+      // Update trigger icon: gear rotates on open, shows "✕"
+      const triggerIcon = dockTrigger.querySelector(".trigger-icon");
+      if (triggerIcon) {
+        if (dock.classList.contains("active")) {
+          triggerIcon.textContent = "✕";
+          triggerIcon.style.fontSize = "20px";
+        } else {
+          triggerIcon.textContent = "⚙️";
+          triggerIcon.style.fontSize = "24px";
+        }
+      }
+    });
+
+    // Close dock when clicking anywhere outside
+    document.addEventListener("click", (e) => {
+      if (!dock.contains(e.target) && dock.classList.contains("active")) {
+        dock.classList.remove("active");
+        const triggerIcon = dockTrigger.querySelector(".trigger-icon");
+        if (triggerIcon) {
+          triggerIcon.textContent = "⚙️";
+          triggerIcon.style.fontSize = "24px";
+        }
+      }
+    });
+  }
 }
 
 // Update Status Bars, edit states, and titles
@@ -137,6 +158,9 @@ function updateStatusIndicators() {
     lastUpdatedEl.textContent = d.toLocaleString();
   }
 
+  const btnSave = document.getElementById("btn-save");
+  const btnCancel = document.getElementById("btn-cancel");
+
   if (authLevel) {
     document.body.classList.add("editing-active");
     if (statusDot) statusDot.classList.add("active");
@@ -145,14 +169,16 @@ function updateStatusIndicators() {
     }
     if (btnEnableEdit) btnEnableEdit.style.display = "none";
     if (btnDisableEdit) btnDisableEdit.style.display = "flex";
-    if (editControls) editControls.style.display = "grid";
+    if (btnSave) btnSave.style.display = "flex";
+    if (btnCancel) btnCancel.style.display = "flex";
   } else {
     document.body.classList.remove("editing-active");
     if (statusDot) statusDot.classList.remove("active");
     if (statusText) statusText.textContent = "View Mode (Locked)";
     if (btnEnableEdit) btnEnableEdit.style.display = "flex";
     if (btnDisableEdit) btnDisableEdit.style.display = "none";
-    if (editControls) editControls.style.display = "none";
+    if (btnSave) btnSave.style.display = "none";
+    if (btnCancel) btnCancel.style.display = "none";
   }
 }
 

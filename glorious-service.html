@@ -59,58 +59,32 @@
       </div>
     </div>
 
-    <!-- Controls Panel -->
-    <div class="board collapsible-board" id="controls-board">
-      <div class="board-title-row toggle-trigger" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; width: 100%;">
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <span class="icon">🛠️</span>
-          <h2>Schedule Controls</h2>
+    <!-- Redesigned Schedule Controls Dock -->
+    <div class="control-dock-container" id="control-dock">
+      <button class="dock-trigger" id="dock-trigger" title="Settings & Actions">
+        <span class="trigger-icon">⚙️</span>
+      </button>
+      <div class="dock-content">
+        <div class="dock-status">
+          <span class="status-dot" id="status-dot"></span>
+          <span id="status-text">View Mode (Locked)</span>
         </div>
-        <span class="toggle-icon">▼</span>
-      </div>
-      
-      <div class="collapsible-content">
-        <div class="controls">
-          <!-- Status Bar showing auth session level -->
-          <div class="status-bar">
-            <span class="status-badge">
-              <span class="status-dot" id="status-dot"></span>
-              <span id="status-text">View Mode (Locked)</span>
-            </span>
-            <a href="index.html" style="color: var(--accent-color); font-size: 11px; text-decoration: none;">Hub Menu ➔</a>
-          </div>
-
-          <!-- Editable Actions Grid (Only visible if session authenticated) -->
-          <div class="button-grid" id="edit-controls" style="display: none;">
-            <button id="btn-save" class="primary">
-              <span>💾</span> Save Changes
-            </button>
-            <button id="btn-cancel" class="danger">
-              <span>✖</span> Cancel Edits
-            </button>
-          </div>
-
-          <!-- Static Action Buttons -->
-          <div class="button-grid">
-            <button id="btn-enable-edit" class="secondary">
-              <span>🔒</span> Edit Roster
-            </button>
-            <button id="btn-disable-edit" class="danger" style="display: none;">
-              <span>🔓</span> Lock Session
-            </button>
-            <button id="btn-download" class="primary">
-              <span>📥</span> Download (PNG)
-            </button>
-          </div>
-
-          <div class="button-grid">
-            <a href="index.html" class="btn secondary">
-              <span>⬅</span> Back to Hub Menu
-            </a>
-            <button id="btn-reset" class="danger">
-              <span>🔄</span> Reset to Default
-            </button>
-          </div>
+        <div style="font-size: 10px; color: #828282; margin-top: -6px; margin-bottom: 4px; font-family: monospace;">
+          Last Updated: <span id="last-updated-time">-</span>
+        </div>
+        <div class="dock-buttons">
+          <!-- Edit Mode Actions -->
+          <button id="btn-save" class="dock-btn save-btn" title="Save Changes" style="display: none;">💾</button>
+          <button id="btn-cancel" class="dock-btn cancel-btn" title="Cancel Edits" style="display: none;">✖</button>
+          
+          <!-- Session Lock Actions -->
+          <button id="btn-enable-edit" class="dock-btn" title="Edit Roster">🔒</button>
+          <button id="btn-disable-edit" class="dock-btn deauth-btn" title="Lock Session" style="display: none;">🔓</button>
+          
+          <!-- Static Actions -->
+          <button id="btn-download" class="dock-btn" title="Download (PNG)">📥</button>
+          <button id="btn-reset" class="dock-btn reset-btn" title="Reset to Default">🔄</button>
+          <a href="index.html" class="dock-btn" title="Back to Hub Menu">⬅</a>
         </div>
       </div>
     </div>

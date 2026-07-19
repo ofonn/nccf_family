@@ -30,7 +30,7 @@
       "rows": [
         {
           "day": "Monday",
-          "time": "06:00 AM – 06:30 AM",
+          "time": "05:30 AM – 06:00 AM",
           "event": "Morning Prayer",
           "person": "Bro. [Morning Lead]"
         },
@@ -42,7 +42,7 @@
         },
         {
           "day": "Tuesday",
-          "time": "06:00 AM – 06:30 AM",
+          "time": "05:30 AM – 06:00 AM",
           "event": "Morning Prayer",
           "person": "Bro. [Morning Lead]"
         },
@@ -54,7 +54,7 @@
         },
         {
           "day": "Wednesday",
-          "time": "06:00 AM – 06:30 AM",
+          "time": "05:30 AM – 06:00 AM",
           "event": "Morning Prayer",
           "person": "Bro. [Morning Lead]"
         },
@@ -66,7 +66,7 @@
         },
         {
           "day": "Thursday",
-          "time": "06:00 AM – 06:30 AM",
+          "time": "05:30 AM – 06:00 AM",
           "event": "Morning Prayer",
           "person": "Bro. [Morning Lead]"
         },
@@ -78,7 +78,7 @@
         },
         {
           "day": "Friday",
-          "time": "06:00 AM – 06:30 AM",
+          "time": "05:30 AM – 06:00 AM",
           "event": "Morning Prayer",
           "person": "Sis. [Morning Lead]"
         },
@@ -90,7 +90,7 @@
         },
         {
           "day": "Saturday",
-          "time": "06:00 AM – 06:30 AM",
+          "time": "05:30 AM – 06:00 AM",
           "event": "Morning Prayer",
           "person": "Bro. [Morning Lead]"
         },
@@ -221,5 +221,5 @@
       ]
     }
   },
-  "lastUpdated": "2026-07-19T11:43:51.881Z"
+  "lastUpdated": "2026-07-19T11:49:55.845Z"
 }
