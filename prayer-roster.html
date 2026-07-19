@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NCCF Prayer Roster</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Load html2canvas from CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body class="theme-prayer" data-page="roster" data-roster-id="prayer_roster">
+
+  <div class="container">
+    
+    <!-- Header -->
+    <header>
+      <div class="logo-wrapper">
+        <a href="index.html"><img src="images/images.jpg" alt="NCCF Logo" onerror="this.style.display='none'"></a>
+      </div>
+      <div class="eyebrow">NCCF Family House</div>
+      <h1 id="page-title">Prayer Roster</h1>
+      <div class="rule"></div>
+    </header>
+
+    <!-- Main Roster Card -->
+    <div class="board">
+      <!-- Illustrative Banner Splattered inside the Card -->
+      <div class="board-banner" style="background-image: url('images/prayer_glow.jpg');"></div>
+      
+      <div class="board-title-row">
+        <span class="icon">🕯️</span>
+        <h2>Weekly Devotional Schedule</h2>
+      </div>
+
+      <!-- Day-grouped tables rendered dynamically by script.js -->
+      <div class="table-wrap">
+        <!-- Populated by renderRosterPage() -->
+      </div>
+
+      <!-- Save & Status Indicators -->
+      <div class="status-bar" style="margin-bottom: 0;">
+        <span class="status-badge" id="auto-save-indicator">
+          ● Synced
+        </span>
+        <span>Last Updated: <span id="last-updated-time">-</span></span>
+      </div>
+    </div>
+
+    <!-- Conflict & Clash Checker Panel -->
+    <div class="board" id="clash-checker-board">
+      <div class="board-title-row">
+        <span class="icon">🛡️</span>
+        <h2>Conflict & Clash Checker</h2>
+      </div>
+      <div id="clash-checker-results">
+        <div style="color: #27AE60; font-weight: 600; display: flex; align-items: center; gap: 6px; padding: 4px 0;">
+          <span>✅</span> Checking schedule...
+        </div>
+      </div>
+    </div>
+
+    <!-- Controls Panel -->
+    <div class="board collapsible-board" id="controls-board">
+      <div class="board-title-row toggle-trigger" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="icon">🛠️</span>
+          <h2>Schedule Controls</h2>
+        </div>
+        <span class="toggle-icon">▼</span>
+      </div>
+      
+      <div class="collapsible-content">
+        <div class="controls">
+          <!-- Status Bar showing auth session level -->
+          <div class="status-bar">
+            <span class="status-badge">
+              <span class="status-dot" id="status-dot"></span>
+              <span id="status-text">View Mode (Locked)</span>
+            </span>
+            <a href="index.html" style="color: var(--accent-color); font-size: 11px; text-decoration: none;">Hub Menu ➔</a>
+          </div>
+
+          <!-- Editable Actions Grid (Only visible if session authenticated) -->
+          <div class="button-grid" id="edit-controls" style="display: none;">
+            <button id="btn-save" class="primary">
+              <span>💾</span> Save Changes
+            </button>
+            <button id="btn-cancel" class="danger">
+              <span>✖</span> Cancel Edits
+            </button>
+          </div>
+
+          <!-- Static Action Buttons -->
+          <div class="button-grid">
+            <button id="btn-enable-edit" class="secondary">
+              <span>🔒</span> Edit Roster
+            </button>
+            <button id="btn-disable-edit" class="danger" style="display: none;">
+              <span>🔓</span> Lock Session
+            </button>
+            <button id="btn-download" class="primary">
+              <span>📥</span> Download (PNG)
+            </button>
+          </div>
+
+          <div class="button-grid">
+            <a href="index.html" class="btn secondary">
+              <span>⬅</span> Back to Hub Menu
+            </a>
+            <button id="btn-reset" class="danger">
+              <span>🔄</span> Reset to Default
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      "Pray without ceasing." — 1 Thessalonians 5:17 🙏
+    </div>
+
+  </div>
+
+  <!-- Password Entry Modal -->
+  <div class="modal-overlay" id="modal-auth">
+    <div class="modal">
+      <h3>Authentication Required</h3>
+      <p>Enter the password to authorize modifications on the Prayer Roster.</p>
+      
+      <form id="form-auth">
+        <div class="form-group">
+          <label for="pwd-input">Access Password</label>
+          <input type="password" id="pwd-input" placeholder="••••••••" required autocomplete="current-password">
+        </div>
+        
+        <div class="modal-buttons">
+          <button type="button" id="btn-close-modal" class="secondary">Cancel</button>
+          <button type="submit" class="primary">Verify</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Shared App Logic Scripts -->
+  <script src="data.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

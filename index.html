@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NCCF Schedule Roster Hub</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Load html2canvas from CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body class="theme-hub" data-page="hub">
+
+  <div class="container">
+    
+    <!-- Main Hub Header -->
+    <header>
+      <div class="logo-wrapper">
+        <img src="images/images.jpg" alt="NCCF Logo" onerror="this.style.display='none'">
+      </div>
+      <div class="eyebrow">Nigeria Christian Corpers' Fellowship</div>
+      <h1>Family House Roster Hub</h1>
+      <div class="rule"></div>
+    </header>
+
+    <!-- Navigation Panel with Cards for Each Roster -->
+    <div class="navigation-panel">
+      
+      <a href="prayer-roster.html" class="hub-card prayer-link">
+        <div class="hub-card-content">
+          <div class="hub-card-left">
+            <div class="hub-card-icon">🕯️</div>
+            <div class="hub-card-text">
+              <h3>Prayer Roster</h3>
+              <p>Daily morning and evening prayer coordinators & themes</p>
+            </div>
+          </div>
+          <div class="hub-card-arrow">➔</div>
+        </div>
+      </a>
+
+      <a href="glorious-service.html" class="hub-card service-link">
+        <div class="hub-card-content">
+          <div class="hub-card-left">
+            <div class="hub-card-icon">✨</div>
+            <div class="hub-card-text">
+              <h3>Glorious Service Roster</h3>
+              <p>Sunday service activities, timing, and ministrations</p>
+            </div>
+          </div>
+          <div class="hub-card-arrow">➔</div>
+        </div>
+      </a>
+
+      <a href="cleaning-roster.html" class="hub-card cleaning-link">
+        <div class="hub-card-content">
+          <div class="hub-card-left">
+            <div class="hub-card-icon">🧹</div>
+            <div class="hub-card-text">
+              <h3>Cleaning Roster</h3>
+              <p>Daily house sanitations, washing schedules, and groups</p>
+            </div>
+          </div>
+          <div class="hub-card-arrow">➔</div>
+        </div>
+      </a>
+
+    </div>
+
+    <!-- Management & Global Controls -->
+    <div class="board collapsible-board" id="management-board">
+      <div class="board-title-row toggle-trigger" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="icon">⚙️</span>
+          <h2>Roster Management</h2>
+        </div>
+        <span class="toggle-icon">▼</span>
+      </div>
+      
+      <div class="collapsible-content">
+        <div class="controls">
+          <div class="status-bar">
+            <span class="status-badge">
+              <span class="status-dot" id="status-dot"></span>
+              <span id="status-text">Checking session...</span>
+            </span>
+            <span>Last Saved: <span id="last-updated-time">-</span></span>
+          </div>
+
+          <div class="button-grid full">
+            <button id="btn-enable-edit" class="primary">
+              <span>🔒</span> Enable Editing
+            </button>
+            <button id="btn-disable-edit" class="danger" style="display: none;">
+              <span>🔓</span> Lock Session & Logout
+            </button>
+          </div>
+
+          <div class="button-grid full">
+            <button id="btn-download-all" class="secondary">
+              <span>📥</span> Download Combined Poster (WhatsApp)
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      "For where two or three are gathered together in my name, there am I in the midst of them." — Matthew 18:20 🙏
+    </div>
+
+  </div>
+
+  <!-- Password Entry Modal -->
+  <div class="modal-overlay" id="modal-auth">
+    <div class="modal">
+      <h3>Authentication Required</h3>
+      <p>Please enter your roster coordinator or administrator password to unlock editing features.</p>
+      
+      <form id="form-auth">
+        <div class="form-group">
+          <label for="pwd-input">Access Password</label>
+          <input type="password" id="pwd-input" placeholder="••••••••" required autocomplete="current-password">
+        </div>
+        
+        <div class="modal-buttons">
+          <button type="button" id="btn-close-modal" class="secondary">Cancel</button>
+          <button type="submit" class="primary">Verify</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Dynamic Success Toast Notification Anchor -->
+  <div class="toast-container"></div>
+
+  <!-- Shared App Logic Scripts -->
+  <script src="data.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

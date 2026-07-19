@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kitchen Duty Roster</title>
+<style>
+  :root{
+    --charcoal:#22261F;
+    --charcoal-light:#2C3126;
+    --chalk:#EDE6D6;
+    --mustard:#D9A441;
+    --jade:#4A6B4F;
+    --rust:#C06B4A;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    padding:28px 14px;
+    background:radial-gradient(ellipse at top, #2A2F24 0%, #171A14 75%);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    display:flex;
+    justify-content:center;
+  }
+  .board{
+    width:100%;
+    max-width:420px;
+    background:var(--charcoal);
+    border-radius:14px;
+    padding:24px 18px 22px;
+    box-shadow:0 14px 34px rgba(0,0,0,0.5);
+    border:1px solid rgba(217,164,65,0.2);
+  }
+  .eyebrow{
+    text-align:center;
+    font-size:10.5px;
+    letter-spacing:0.18em;
+    text-transform:uppercase;
+    color:var(--jade);
+    font-weight:700;
+    margin-bottom:8px;
+  }
+  h1{
+    text-align:center;
+    font-size:22px;
+    font-weight:800;
+    letter-spacing:0.03em;
+    text-transform:uppercase;
+    color:var(--mustard);
+    margin:0 0 8px;
+  }
+  .underline{
+    width:120px;
+    margin:0 auto 18px;
+    border-top:2px dashed rgba(237,230,214,0.35);
+  }
+  .table-wrap{
+    border-radius:8px;
+    overflow:hidden;
+    border:1px solid rgba(217,164,65,0.15);
+  }
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:12px;
+    table-layout:fixed;
+  }
+  th,td{word-wrap:break-word;}
+  thead th{
+    background:var(--mustard);
+    color:var(--charcoal);
+    font-weight:800;
+    padding:8px 6px;
+    text-align:left;
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+  }
+  tbody td{
+    padding:10px 6px;
+    color:var(--chalk);
+    border-bottom:1px dashed rgba(237,230,214,0.16);
+    vertical-align:top;
+  }
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr:nth-child(even){background:var(--charcoal-light);}
+  .day{
+    font-weight:800;
+    color:var(--mustard);
+    letter-spacing:0.03em;
+  }
+  .duo{font-weight:600;}
+  .fast-note{display:block;font-size:9.5px;color:var(--rust);font-style:italic;margin-top:2px;}
+  th:nth-child(1),td:nth-child(1){width:15%;}
+  th:nth-child(2),td:nth-child(2){width:33%;}
+  th:nth-child(3),td:nth-child(3){width:26%;}
+  th:nth-child(4),td:nth-child(4){width:26%;}
+  .rules{
+    margin-top:20px;
+    background:var(--charcoal-light);
+    border:1px solid rgba(74,107,79,0.4);
+    border-radius:10px;
+    padding:14px 14px 12px;
+  }
+  .rules h2{
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.1em;
+    color:var(--jade);
+    margin:0 0 10px;
+    font-weight:800;
+  }
+  .rules ul{list-style:none;margin:0;padding:0;}
+  .rules li{
+    font-size:12px;
+    line-height:1.5;
+    color:var(--chalk);
+    margin-bottom:8px;
+    padding-left:23px;
+    position:relative;
+  }
+  .rules li:last-child{margin-bottom:0;}
+  .rules li::before{
+    content:"✓";
+    position:absolute;
+    left:0;
+    top:1px;
+    width:15px;
+    height:15px;
+    font-size:10px;
+    line-height:15px;
+    text-align:center;
+    color:var(--charcoal);
+    background:var(--jade);
+    border-radius:3px;
+    font-weight:800;
+  }
+  .footer{
+    text-align:center;
+    margin-top:18px;
+    font-size:12px;
+    font-style:italic;
+    color:var(--mustard);
+  }
+</style>
+</head>
+<body>
+  <div class="board">
+    <div class="eyebrow">NCCF Family House 2</div>
+    <h1>Kitchen Duty Roster</h1>
+    <div class="underline"></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Day</th><th>On Duty</th><th>Breakfast</th><th>Dinner</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="day">Sun</td><td class="duo">Judith</td><td>Jollof Rice</td><td>Spag Jollof</td></tr>
+          <tr><td class="day">Mon</td><td class="duo">Opeyemi & Segun</td><td>Rice & Stew</td><td>Eba</td></tr>
+          <tr><td class="day">Tue</td><td class="duo">Mimi & Ofonime</td><td>Fasting<span class="fast-note">till evening</span></td><td>Moimoi / Beans</td></tr>
+          <tr><td class="day">Wed</td><td class="duo">Olayinka & Christopher</td><td>Rice & Beans</td><td>Amala</td></tr>
+          <tr><td class="day">Thu</td><td class="duo">Prince & Chidera</td><td>Rice & Stew</td><td>Stew Spaghetti</td></tr>
+          <tr><td class="day">Fri</td><td class="duo">Mimi & Olayinka</td><td>Jollof Spag</td><td>Beans</td></tr>
+          <tr><td class="day">Sat</td><td class="duo">Ofonime & Chidera</td><td>Rice & Stew</td><td>Eba</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="rules">
+      <h2>House Rules</h2>
+      <ul>
+        <li>Help each other in the kitchen to make a delicious meal.</li>
+        <li>This roster is subject to change — please take note.</li>
+        <li>Both people on duty handle breakfast <em>and</em> dinner.</li>
+        <li>Can't make it? Arrange a replacement.</li>
+        <li>Wash all pots and utensils after cooking.</li>
+        <li>Not around? Let the house know early to avoid food wastage.</li>
+        <li>Sweep and mop the kitchen after cooking.</li>
+      </ul>
+    </div>
+    <div class="footer">God is helping 🙏</div>
+  </div>
+</body>
+</html>
