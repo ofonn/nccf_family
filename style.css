@@ -624,54 +624,71 @@ button.danger-outline:hover, .btn.danger-outline:hover {
 /* Buttons grid inside Dock */
 .dock-buttons {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: flex-start;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
   margin-top: 5px;
 }
 
-/* Circular Micro dock buttons */
+/* Rectangular Dock buttons with text labels */
 .dock-btn {
-  width: 44px !important;
-  height: 44px !important;
-  border-radius: 50% !important;
-  background: rgba(255, 255, 255, 0.06) !important;
-  border: 1px solid rgba(255, 255, 255, 0.15) !important;
-  color: var(--cream) !important;
-  font-size: 18px !important;
   display: flex !important;
   align-items: center !important;
-  justify-content: center !important;
+  gap: 10px !important;
+  padding: 10px 14px !important;
+  border-radius: 8px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: var(--cream) !important;
+  font-size: 12.5px !important;
+  font-weight: 700 !important;
   cursor: pointer !important;
-  transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2) !important;
-  padding: 0 !important;
-  text-transform: none !important;
+  transition: all 0.2s ease !important;
+  width: 100% !important;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
+  text-decoration: none !important;
+  box-sizing: border-box !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.03em !important;
+  justify-content: flex-start !important;
 }
 
 .dock-btn:hover {
-  background: rgba(255, 255, 255, 0.14) !important;
+  background: rgba(255, 255, 255, 0.12) !important;
   border-color: var(--accent-color) !important;
-  transform: scale(1.12) translateY(-3px) !important;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.35), 0 0 10px rgba(227, 169, 74, 0.2) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25), 0 0 10px rgba(227, 169, 74, 0.1) !important;
+}
+
+.dock-btn .btn-icon {
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dock-btn .btn-label {
+  display: inline-block;
 }
 
 /* Green save button styling */
 .dock-btn.save-btn {
   background: linear-gradient(135deg, #2ECC71 0%, #27AE60 100%) !important;
   border-color: rgba(255, 255, 255, 0.2) !important;
+  color: white !important;
 }
 .dock-btn.save-btn:hover {
-  box-shadow: 0 6px 18px rgba(46, 204, 113, 0.4) !important;
+  box-shadow: 0 4px 12px rgba(46, 204, 113, 0.4) !important;
 }
 
 /* Red cancel button styling */
 .dock-btn.cancel-btn {
   background: linear-gradient(135deg, #E74C3C 0%, #C0392B 100%) !important;
   border-color: rgba(255, 255, 255, 0.2) !important;
+  color: white !important;
 }
 .dock-btn.cancel-btn:hover {
-  box-shadow: 0 6px 18px rgba(231, 76, 60, 0.4) !important;
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4) !important;
 }
 
 /* Dashed Red Reset button styling */

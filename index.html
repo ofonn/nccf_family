@@ -80,9 +80,15 @@
           Last Saved: <span id="last-updated-time">-</span>
         </div>
         <div class="dock-buttons">
-          <button id="btn-enable-edit" class="dock-btn" title="Enable Editing">🔒</button>
-          <button id="btn-disable-edit" class="dock-btn deauth-btn" title="Lock Session & Logout" style="display: none;">🔓</button>
-          <button id="btn-download-all" class="dock-btn download-btn" title="Download Combined Poster">📥</button>
+          <button id="btn-enable-edit" class="dock-btn">
+            <span class="btn-icon">🔒</span> <span class="btn-label">Unlock Editing</span>
+          </button>
+          <button id="btn-disable-edit" class="dock-btn deauth-btn" style="display: none;">
+            <span class="btn-icon">🔓</span> <span class="btn-label">Lock Session</span>
+          </button>
+          <button id="btn-download-all" class="dock-btn download-btn">
+            <span class="btn-icon">📥</span> <span class="btn-label">Download Poster</span>
+          </button>
         </div>
       </div>
     </div>

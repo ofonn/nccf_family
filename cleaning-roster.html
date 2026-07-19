@@ -74,17 +74,31 @@
         </div>
         <div class="dock-buttons">
           <!-- Edit Mode Actions -->
-          <button id="btn-save" class="dock-btn save-btn" title="Save Changes" style="display: none;">💾</button>
-          <button id="btn-cancel" class="dock-btn cancel-btn" title="Cancel Edits" style="display: none;">✖</button>
+          <button id="btn-save" class="dock-btn save-btn" style="display: none;">
+            <span class="btn-icon">💾</span> <span class="btn-label">Save Changes</span>
+          </button>
+          <button id="btn-cancel" class="dock-btn cancel-btn" style="display: none;">
+            <span class="btn-icon">✖</span> <span class="btn-label">Discard Edits</span>
+          </button>
           
           <!-- Session Lock Actions -->
-          <button id="btn-enable-edit" class="dock-btn" title="Edit Roster">🔒</button>
-          <button id="btn-disable-edit" class="dock-btn deauth-btn" title="Lock Session" style="display: none;">🔓</button>
+          <button id="btn-enable-edit" class="dock-btn">
+            <span class="btn-icon">🔒</span> <span class="btn-label">Unlock Editing</span>
+          </button>
+          <button id="btn-disable-edit" class="dock-btn deauth-btn" style="display: none;">
+            <span class="btn-icon">🔓</span> <span class="btn-label">Lock Session</span>
+          </button>
           
           <!-- Static Actions -->
-          <button id="btn-download" class="dock-btn" title="Download (PNG)">📥</button>
-          <button id="btn-reset" class="dock-btn reset-btn" title="Reset to Default">🔄</button>
-          <a href="index.html" class="dock-btn" title="Back to Hub Menu">⬅</a>
+          <button id="btn-download" class="dock-btn">
+            <span class="btn-icon">📥</span> <span class="btn-label">Download Poster</span>
+          </button>
+          <button id="btn-reset" class="dock-btn reset-btn">
+            <span class="btn-icon">🔄</span> <span class="btn-label">Reset Defaults</span>
+          </button>
+          <a href="index.html" class="dock-btn">
+            <span class="btn-icon">⬅</span> <span class="btn-label">Back to Hub</span>
+          </a>
         </div>
       </div>
     </div>

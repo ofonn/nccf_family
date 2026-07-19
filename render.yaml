@@ -1,9 +1,0 @@
-services:
-  - type: web
-    name: nccf-family-roster
-    env: node
-    buildCommand: ""
-    startCommand: node server.js
-    envVars:
-      - key: PORT
-        value: 8080
