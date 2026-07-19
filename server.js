@@ -6,7 +6,8 @@ const crypto = require('crypto');
 
 const PORT = 8080;
 const PUBLIC_DIR = __dirname;
-const DATA_FILE = path.join(PUBLIC_DIR, 'rosters.json');
+const DATA_DIR = fs.existsSync('/data') ? '/data' : PUBLIC_DIR;
+const DATA_FILE = path.join(DATA_DIR, 'rosters.json');
 
 // SHA-256 hashes for credentials
 const HASHES = {
