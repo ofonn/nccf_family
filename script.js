@@ -21,9 +21,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   const pageType = document.body.dataset.page;
   activeRosterId = document.body.dataset.rosterId;
 
-  // Load saved theme
+  // Load saved theme (default to bright)
   const savedTheme = localStorage.getItem("nccf_theme");
-  if (savedTheme === "bright") {
+  if (savedTheme !== "dark") {
     document.body.classList.add("theme-bright");
   }
 
@@ -852,6 +852,8 @@ function downloadSingleRoster(roster) {
   const captureContainer = document.createElement("div");
   captureContainer.className = "canvas-capture-container";
   captureContainer.classList.add(`theme-${roster.id.split("_")[0]}`);
+  const isBright = document.body.classList.contains("theme-bright");
+  if (isBright) captureContainer.classList.add("theme-bright");
   
   let tablesHTML = "";
   if (roster.id === "cleaning_roster" || roster.id === "cooking_roster") {
@@ -929,7 +931,7 @@ function downloadSingleRoster(roster) {
 
   html2canvas(captureContainer, {
     scale: 2.5,
-    backgroundColor: "#17131F",
+    backgroundColor: isBright ? "#F8F9FA" : "#17131F",
     useCORS: true,
     allowTaint: true,
     logging: false
@@ -951,9 +953,11 @@ function downloadSingleRoster(roster) {
 function downloadCombinedSchedule(cardsHTML) {
   showToast("Compiling full schedule poster...");
 
+  const isBright = document.body.classList.contains("theme-bright");
   const captureContainer = document.createElement("div");
   captureContainer.className = "canvas-capture-container";
-  captureContainer.style.background = "radial-gradient(circle at 50% 0%, #201726 0%, #0E0914 100%)";
+  if (isBright) captureContainer.classList.add("theme-bright");
+  captureContainer.style.background = isBright ? "#F8F9FA" : "radial-gradient(circle at 50% 0%, #201726 0%, #0E0914 100%)";
   
   captureContainer.innerHTML = `
     <div class="canvas-header">
@@ -971,7 +975,7 @@ function downloadCombinedSchedule(cardsHTML) {
 
   html2canvas(captureContainer, {
     scale: 2,
-    backgroundColor: "#0E0914",
+    backgroundColor: isBright ? "#F8F9FA" : "#0E0914",
     useCORS: true,
     allowTaint: true,
     logging: false
