@@ -123,12 +123,20 @@ async function loadRostersData() {
         .single();
 
       if (error && error.code !== 'PGRST116') throw error;
-      if (data && data.data) return data.data;
+      
+      if (data && data.data && data.data.rosters) {
+        return data.data;
+      }
     } catch (e) {
       console.error("Failed to connect to Supabase:", e);
     }
   }
-  return {}; // Return empty if db fails, shouldn't happen in production
+  
+  // Return defaults if db is empty or fails
+  return {
+    rosters: DEFAULT_ROSTERS,
+    lastUpdated: new Date().toISOString()
+  };
 }
 
 // Save rosters back to Supabase
