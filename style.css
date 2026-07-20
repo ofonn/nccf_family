@@ -769,7 +769,7 @@ button.danger-outline:hover, .btn.danger-outline:hover {
 
 /* Clean, flat menu rows without blocky boxes */
 .dock-btn {
-  display: flex !important;
+  display: flex;
   align-items: center !important;
   gap: 12px !important;
   padding: 12px 6px !important;
