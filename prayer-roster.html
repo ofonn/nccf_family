@@ -1,6 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
+  <script>
+    if (localStorage.getItem("nccf_theme") !== "dark") {
+      document.documentElement.classList.add("theme-bright");
+      document.write('<style>body { visibility: hidden; }</style>');
+      document.addEventListener("DOMContentLoaded", () => {
+        document.body.classList.add("theme-bright");
+        document.body.style.visibility = "visible";
+      });
+    }
+  </script>
+
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NCCF Prayer Roster</title>

@@ -67,7 +67,7 @@ const DEFAULT_ROSTERS = {
       { day: "Thursday", time: "05:30 AM – 06:00 AM", event: "Morning Prayer", person: "Prince" },
       { day: "Thursday", time: "04:30 PM – 06:00 PM", event: "Bible Study", person: "Judith" },
       { day: "Friday", time: "05:30 AM – 06:00 AM", event: "Morning Prayer", person: "Oluchi" },
-      { day: "Friday", time: "08:30 PM – 09:30 PM", event: "Discussion Night", person: "Ola" },
+      { day: "Friday", time: "08:30 PM", event: "Discussion Night", person: "Ola" },
       { day: "Saturday", time: "05:30 AM – 06:00 AM", event: "Morning Prayer", person: "Chidera" },
       { day: "Saturday", time: "08:30 PM – 09:00 PM", event: "Praise & Worship", person: "Mimi" }
     ]
@@ -85,13 +85,14 @@ const DEFAULT_ROSTERS = {
       { key: "person", label: "Assigned Person", editable: true, list: "members" }
     ],
     rows: [
-      { day: "Sunday", time: "09:00 AM – 09:15 AM", event: "Opening Prayer", person: "Prince" },
-      { day: "Sunday", time: "09:15 AM – 09:45 AM", event: "Praise & Worship", person: "Ola" },
-      { day: "Sunday", time: "09:45 AM – 10:00 AM", event: "Testimonies", person: "Oluchi" },
-      { day: "Sunday", time: "10:00 AM – 10:45 AM", event: "Word Ministration", person: "Ofonime" },
-      { day: "Sunday", time: "10:45 AM – 11:00 AM", event: "Offering & Tithes", person: "Judith" },
-      { day: "Sunday", time: "11:00 AM – 11:10 AM", event: "Announcements", person: "Christopher" },
-      { day: "Sunday", time: "11:10 AM – 11:15 AM", event: "Benediction", person: "Segun" }
+      { day: "Sunday", time: "04:00 PM – 04:10 PM", event: "Opening prayer", person: "Opeyemi" },
+      { day: "Sunday", time: "04:10 PM – 04:30 PM", event: "Praise and Worship", person: "Judith" },
+      { day: "Sunday", time: "04:30 PM – 04:40 PM", event: "Testimony", person: "Mimi" },
+      { day: "Sunday", time: "04:40 PM – 04:50 PM", event: "Worship again", person: "Olayinka" },
+      { day: "Sunday", time: "04:50 PM – 05:30 PM", event: "Word Ministration", person: "Chidera" },
+      { day: "Sunday", time: "05:30 PM – 05:40 PM", event: "Announcement", person: "Segun" },
+      { day: "Sunday", time: "05:40 PM – 05:50 PM", event: "Offering", person: "Mimi" },
+      { day: "Sunday", time: "05:50 PM – 06:00 PM", event: "Benediction", person: "General" }
     ]
   },
   cleaning_roster: {
@@ -105,13 +106,13 @@ const DEFAULT_ROSTERS = {
       { key: "person", label: "Assigned Person", editable: true, list: "members" }
     ],
     rows: [
-      { day: "Sunday", person: "Judith" },
-      { day: "Monday", person: "Segun" },
-      { day: "Tuesday", person: "Ofonime" },
-      { day: "Wednesday", person: "Christopher" },
-      { day: "Thursday", person: "Chidera" },
-      { day: "Friday", person: "Opeyemi" },
-      { day: "Saturday", person: "Mimi" }
+      { day: "Sunday", person: "-" },
+      { day: "Monday", person: "Ofonime" },
+      { day: "Tuesday", person: "Christopher" },
+      { day: "Wednesday", person: "Segun" },
+      { day: "Thursday", person: "Opeyemi" },
+      { day: "Friday", person: "Prince" },
+      { day: "Saturday", person: "Judith" }
     ]
   },
   cooking_roster: {
@@ -123,13 +124,13 @@ const DEFAULT_ROSTERS = {
     editableBy: "master",
     columns: [
       { key: "person", label: "On Duty", editable: true, list: "members" },
-      { key: "breakfast", label: "Breakfast", editable: true },
-      { key: "dinner", label: "Dinner", editable: true }
+      { key: "breakfast", label: "Breakfast", editable: true, list: "foods" },
+      { key: "dinner", label: "Dinner", editable: true, list: "foods" }
     ],
     rows: [
       { day: "Sunday", person: "Judith", breakfast: "Jollof Rice", dinner: "Spag Jollof" },
       { day: "Monday", person: "Opeyemi", breakfast: "Rice & Stew", dinner: "Eba" },
-      { day: "Tuesday", person: "Ofonime", breakfast: "Fasting (till evening)", dinner: "Moimoi / Beans" },
+      { day: "Tuesday", person: "Ofonime", breakfast: "Fasting (till evening)", dinner: "Moi moi" },
       { day: "Wednesday", person: "Olayinka", breakfast: "Rice & Beans", dinner: "Amala" },
       { day: "Thursday", person: "Chidera", breakfast: "Rice & Stew", dinner: "Stew Spaghetti" },
       { day: "Friday", person: "Mimi", breakfast: "Jollof Spag", dinner: "Beans" },

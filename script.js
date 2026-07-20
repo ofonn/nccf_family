@@ -13,6 +13,9 @@ const PREDEFINED_SUGGESTIONS = {
     "Morning Prayer", "Evening Devotional: Hymns", "Theme Exposition", "Bible Study", "Praise & Worship",
     "Opening Prayer", "Testimonies", "Word Ministration", "Offering & Tithes", "Announcements", "Benediction",
     "Discussion Night", "Game Night"
+  ],
+  foods: [
+    "Jollof Rice", "Spag Jollof", "Rice & Stew", "Eba", "Amala", "Stew Spaghetti", "Jollof Spag", "Beans", "Moi moi", "Fasting (till evening)"
   ]
 };
 
@@ -501,6 +504,21 @@ function enterAutocompleteEdit(td, roster, rowIndex, colKey, listType, directMan
   });
   popover.appendChild(writeOption);
 
+  // Add "Add Partner (&)" option for multiple selection
+  if (listType === "members") {
+    const partnerOption = document.createElement("div");
+    partnerOption.className = "custom-dropdown-item partner-item";
+    partnerOption.innerHTML = "➕ Add Partner (&)";
+    partnerOption.style.color = "var(--accent-color)";
+    partnerOption.addEventListener("click", (e) => {
+      e.stopPropagation();
+      // Auto-lock: We don't close the dropdown. We append " & " to the originalText and allow them to click another name.
+      td.textContent = (td.textContent === originalText ? originalText : td.textContent) + " & ";
+      // We will leave the popover open so the next click selects the partner
+    });
+    popover.appendChild(partnerOption);
+  }
+
   // Register click outside
   setTimeout(() => {
     document.addEventListener("click", handleOutsideClick);
@@ -800,17 +818,43 @@ function performClashCheck() {
     });
   });
 
-  // 2. Intersect and check for overlapping times and shared names
+  // 2. Intersect and check for overlapping periods and shared names
   Object.keys(daySchedule).forEach(day => {
+    if (day === "Sunday") return; // Exempt Sundays completely
+
     const items = daySchedule[day];
     for (let i = 0; i < items.length; i++) {
       for (let j = i + 1; j < items.length; j++) {
         const itemA = items[i];
         const itemB = items[j];
 
-        // Check if A and B have overlapping times
-        // Formula: max(startA, startB) < min(endA, endB)
-        const overlap = Math.max(itemA.start, itemB.start) < Math.min(itemA.end, itemB.end);
+        // Cooking exemption: whoever is praying can be cooking
+        const isCookingA = itemA.rosterName.toLowerCase().includes("cooking");
+        const isCookingB = itemB.rosterName.toLowerCase().includes("cooking");
+        const isPrayerA = itemA.rosterName.toLowerCase().includes("prayer");
+        const isPrayerB = itemB.rosterName.toLowerCase().includes("prayer");
+
+        if ((isCookingA && isPrayerB) || (isCookingB && isPrayerA)) {
+          continue; 
+        }
+
+        // Determine periods (Morning < 12:00, Evening >= 12:00)
+        // Cooking takes up both periods implicitly, but clashes only within the same period
+        const getPeriod = (item) => item.start < 12 * 60 ? "Morning" : "Evening";
+        
+        let overlap = false;
+        if (isCookingA && isCookingB) {
+          overlap = true; // Two cooking tasks always clash
+        } else if (isCookingA) {
+          // Cooking clashes with anything else happening in either period (unless exempted above)
+          overlap = true; 
+        } else if (isCookingB) {
+          overlap = true;
+        } else {
+          // Normal check: do they happen in the same period?
+          overlap = getPeriod(itemA) === getPeriod(itemB);
+        }
+
         if (overlap) {
           // Check for shared names
           const sharedNames = itemA.names.filter(n => itemB.names.includes(n));
@@ -822,8 +866,8 @@ function performClashCheck() {
                 <strong>⚠️ Double Scheduling Clash (${day})</strong><br>
                 <span style="color: #EB5757; font-weight: bold;">${cleanNames}</span> is assigned to overlapping activities:
                 <ul style="margin: 4px 0 0 16px; padding: 0; font-size: 11.5px; color: var(--cream);">
-                  <li>"${itemA.rosterName}" (${itemA.timeStr})</li>
-                  <li>"${itemB.rosterName}" (${itemB.timeStr})</li>
+                  <li>"${itemA.rosterName}" (${itemA.timeStr || "All Day"})</li>
+                  <li>"${itemB.rosterName}" (${itemB.timeStr || "All Day"})</li>
                 </ul>
               </div>
             `);
