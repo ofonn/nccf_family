@@ -211,8 +211,13 @@ module.exports = async (req, res) => {
       }
 
       // Standard Save Action
-      const body = await getRequestBody(req);
-      const newPayload = JSON.parse(body);
+      let newPayload;
+      if (req.body && typeof req.body === 'object') {
+        newPayload = req.body;
+      } else {
+        const body = await getRequestBody(req);
+        newPayload = JSON.parse(body);
+      }
       
       const fileData = await loadRostersData();
       let newRosters = fileData.rosters || {};
