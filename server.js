@@ -142,30 +142,37 @@ function getRequestBody(req) {
   });
 }
 
-const JSONBIN_BIN_ID = process.env.JSONBIN_BIN_ID;
-const JSONBIN_API_KEY = process.env.JSONBIN_API_KEY;
+const { createClient } = require('@supabase/supabase-js');
 
-// Read or initialize rosters data (JSONBin.io or local file fallback)
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+
+let supabase = null;
+if (SUPABASE_URL && SUPABASE_SERVICE_KEY) {
+  supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+}
+
+// Read or initialize rosters data (Supabase or local file fallback)
 async function loadRostersData() {
-  if (JSONBIN_BIN_ID && JSONBIN_API_KEY) {
+  if (supabase) {
     try {
-      console.log("Fetching rosters from JSONBin.io cloud database...");
-      const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
-        method: "GET",
-        headers: {
-          "X-Master-Key": JSONBIN_API_KEY,
-          "X-Bin-Meta": "false"
-        }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.rosters) {
-          return data;
-        }
+      console.log("Fetching rosters from Supabase cloud database...");
+      const { data, error } = await supabase
+        .from('rosters_data')
+        .select('data')
+        .eq('id', 1)
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // Ignore "no rows returned" error
+        throw error;
       }
-      console.warn("JSONBin fetch failed, falling back to local file.");
+      
+      if (data && data.data) {
+        return data.data;
+      }
+      console.warn("Supabase returned empty data, falling back to local file.");
     } catch (e) {
-      console.error("Failed to connect to JSONBin.io:", e);
+      console.error("Failed to connect to Supabase:", e);
     }
   }
 
@@ -190,26 +197,22 @@ async function loadRostersData() {
   return initialData;
 }
 
-// Save rosters back to file and JSONBin.io
+// Save rosters back to file and Supabase
 async function saveRostersData(rostersData) {
-  if (JSONBIN_BIN_ID && JSONBIN_API_KEY) {
+  if (supabase) {
     try {
-      console.log("Updating rosters on JSONBin.io cloud database...");
-      const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
-        method: "PUT",
-        headers: {
-          "X-Master-Key": JSONBIN_API_KEY,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(rostersData)
-      });
-      if (res.ok) {
-        console.log("JSONBin.io update succeeded!");
+      console.log("Updating rosters on Supabase cloud database...");
+      const { error } = await supabase
+        .from('rosters_data')
+        .upsert({ id: 1, data: rostersData, updated_at: new Date().toISOString() });
+        
+      if (!error) {
+        console.log("Supabase update succeeded!");
       } else {
-        console.warn("JSONBin.io update failed with status:", res.status);
+        console.warn("Supabase update failed:", error);
       }
     } catch (e) {
-      console.error("Failed to update JSONBin.io:", e);
+      console.error("Failed to update Supabase:", e);
     }
   }
 
@@ -280,7 +283,7 @@ const server = http.createServer(async (req, res) => {
       }
 
       fileData.lastUpdated = new Date().toISOString();
-      saveRostersToFile(fileData);
+      await saveRostersData(fileData);
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify({ success: true, message: "Roster saved successfully.", authLevel }));
