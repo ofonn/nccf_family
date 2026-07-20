@@ -131,20 +131,22 @@ async function loadRostersData() {
 // Save to Supabase REST API
 async function saveRostersData(rostersData) {
   if (SUPABASE_URL && SUPABASE_SERVICE_KEY) {
-    try {
-      await fetch(`${SUPABASE_URL}/rest/v1/rosters_data?id=eq.1`, {
-        method: 'PATCH',
-        headers: {
-          'apikey': SUPABASE_SERVICE_KEY,
-          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=minimal'
-        },
-        body: JSON.stringify({ data: rostersData, updated_at: new Date().toISOString() })
-      });
-    } catch (e) {
-      console.error("Fast save failed:", e);
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rosters_data?id=eq.1`, {
+      method: 'PATCH',
+      headers: {
+        'apikey': SUPABASE_SERVICE_KEY,
+        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({ data: rostersData, updated_at: new Date().toISOString() })
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Supabase PATCH failed: ${res.status} ${errText}`);
     }
+  } else {
+    throw new Error("Supabase environment variables are missing on Vercel.");
   }
 }
 
@@ -235,7 +237,7 @@ module.exports = async (req, res) => {
       return res.status(200).json({ success: true, message: "Roster saved successfully.", authLevel });
     } catch (e) {
       console.error("API Error: ", e);
-      return res.status(500).json({ error: "Server failed to process your save request." });
+      return res.status(500).json({ error: `Server failed to process your save request: ${e.message}` });
     }
   }
 
