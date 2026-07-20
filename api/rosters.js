@@ -110,7 +110,7 @@ function sha256(str) {
 async function loadRostersData() {
   if (SUPABASE_URL && SUPABASE_SERVICE_KEY) {
     try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/rosters_data?id=eq.1&select=data`, {
+      const res = await fetchIPv4(`${SUPABASE_URL}/rest/v1/rosters_data?id=eq.1&select=data`, {
         headers: {
           'apikey': SUPABASE_SERVICE_KEY,
           'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`
@@ -131,7 +131,7 @@ async function loadRostersData() {
 // Save to Supabase REST API
 async function saveRostersData(rostersData) {
   if (SUPABASE_URL && SUPABASE_SERVICE_KEY) {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/rosters_data?id=eq.1`, {
+    const res = await fetchIPv4(`${SUPABASE_URL}/rest/v1/rosters_data?id=eq.1`, {
       method: 'PATCH',
       headers: {
         'apikey': SUPABASE_SERVICE_KEY,
