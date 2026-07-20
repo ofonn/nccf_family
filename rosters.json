@@ -32,73 +32,73 @@
           "day": "Monday",
           "time": "05:30 AM – 06:00 AM",
           "event": "Morning Prayer",
-          "person": "Bro. [Morning Lead]"
+          "person": "Chidera"
         },
         {
           "day": "Monday",
           "time": "08:30 PM – 09:00 PM",
           "event": "Evening Devotional: Hymns",
-          "person": "Sis. [Evening Lead]"
+          "person": "Mimi"
         },
         {
           "day": "Tuesday",
           "time": "05:30 AM – 06:00 AM",
           "event": "Morning Prayer",
-          "person": "Bro. [Morning Lead]"
+          "person": "Segun"
         },
         {
           "day": "Tuesday",
           "time": "06:00 PM – 07:00 PM",
           "event": "Fasting & Prayer Meeting",
-          "person": "Sis. [Evening Lead]"
+          "person": "Ofonime"
         },
         {
           "day": "Wednesday",
           "time": "05:30 AM – 06:00 AM",
           "event": "Morning Prayer",
-          "person": "Bro. [Morning Lead]"
+          "person": "Christopher"
         },
         {
           "day": "Wednesday",
           "time": "08:30 PM – 09:00 PM",
           "event": "Theme Exposition",
-          "person": "Bro. [Evening Lead]"
+          "person": "Olayinka"
         },
         {
           "day": "Thursday",
           "time": "05:30 AM – 06:00 AM",
           "event": "Morning Prayer",
-          "person": "Bro. [Morning Lead]"
+          "person": "Prince"
         },
         {
           "day": "Thursday",
           "time": "04:30 PM – 06:00 PM",
           "event": "Bible Study",
-          "person": "Bro. [Bible Teacher]"
+          "person": "Judith"
         },
         {
           "day": "Friday",
           "time": "05:30 AM – 06:00 AM",
           "event": "Morning Prayer",
-          "person": "Sis. [Morning Lead]"
+          "person": "Oluchi"
         },
         {
           "day": "Friday",
           "time": "08:30 PM – 09:30 PM",
           "event": "Discussion Night",
-          "person": "Sis. [Evening Lead]"
+          "person": "Ola"
         },
         {
           "day": "Saturday",
           "time": "05:30 AM – 06:00 AM",
           "event": "Morning Prayer",
-          "person": "Bro. [Morning Lead]"
+          "person": "Chidera"
         },
         {
           "day": "Saturday",
           "time": "08:30 PM – 09:00 PM",
           "event": "Praise & Worship",
-          "person": "Sis. [Choir Lead]"
+          "person": "Mimi"
         }
       ]
     },
@@ -134,43 +134,43 @@
           "day": "Sunday",
           "time": "09:00 AM – 09:15 AM",
           "event": "Opening Prayer",
-          "person": "Bro. [Prayer Leader]"
+          "person": "Prince"
         },
         {
           "day": "Sunday",
           "time": "09:15 AM – 09:45 AM",
           "event": "Praise & Worship",
-          "person": "NCCF Choir"
+          "person": "Ola"
         },
         {
           "day": "Sunday",
           "time": "09:45 AM – 10:00 AM",
           "event": "Testimonies",
-          "person": "Congregation"
+          "person": "Oluchi"
         },
         {
           "day": "Sunday",
           "time": "10:00 AM – 10:45 AM",
           "event": "Word Ministration",
-          "person": "Bro. [Preacher]"
+          "person": "Ofonime"
         },
         {
           "day": "Sunday",
           "time": "10:45 AM – 11:00 AM",
           "event": "Offering & Tithes",
-          "person": "Sis. [Finance Officer]"
+          "person": "Judith"
         },
         {
           "day": "Sunday",
           "time": "11:00 AM – 11:10 AM",
           "event": "Announcements",
-          "person": "Bro. [Secretary]"
+          "person": "Christopher"
         },
         {
           "day": "Sunday",
           "time": "11:10 AM – 11:15 AM",
           "event": "Benediction",
-          "person": "Bro. [President]"
+          "person": "Segun"
         }
       ]
     },
@@ -192,34 +192,104 @@
       "rows": [
         {
           "day": "Sunday",
-          "person": "Group A (Judith & Opeyemi)"
+          "person": "Judith"
         },
         {
           "day": "Monday",
-          "person": "Group B (Segun & Mimi)"
+          "person": "Segun"
         },
         {
           "day": "Tuesday",
-          "person": "Group C (Ofonime & Olayinka)"
+          "person": "Ofonime"
         },
         {
           "day": "Wednesday",
-          "person": "Group D (Christopher & Prince)"
+          "person": "Christopher"
         },
         {
           "day": "Thursday",
-          "person": "Group E (Chidera & Judith)"
+          "person": "Chidera"
         },
         {
           "day": "Friday",
-          "person": "Group A (Opeyemi & Segun)"
+          "person": "Opeyemi"
         },
         {
           "day": "Saturday",
-          "person": "All Corpers (General Sanitation)"
+          "person": "Mimi"
+        }
+      ]
+    },
+    "cooking_roster": {
+      "id": "cooking_roster",
+      "title": "Cooking Roster",
+      "icon": "🍳",
+      "image": "images/service_glory.jpg",
+      "themeClass": "theme-cooking",
+      "editableBy": "master",
+      "columns": [
+        {
+          "key": "person",
+          "label": "On Duty",
+          "editable": true,
+          "list": "members"
+        },
+        {
+          "key": "breakfast",
+          "label": "Breakfast",
+          "editable": true
+        },
+        {
+          "key": "dinner",
+          "label": "Dinner",
+          "editable": true
+        }
+      ],
+      "rows": [
+        {
+          "day": "Sunday",
+          "person": "Judith",
+          "breakfast": "Jollof Rice",
+          "dinner": "Spag Jollof"
+        },
+        {
+          "day": "Monday",
+          "person": "Opeyemi & Segun",
+          "breakfast": "Rice & Stew",
+          "dinner": "Eba"
+        },
+        {
+          "day": "Tuesday",
+          "person": "Mimi & Ofonime",
+          "breakfast": "Fasting (till evening)",
+          "dinner": "Moimoi / Beans"
+        },
+        {
+          "day": "Wednesday",
+          "person": "Olayinka & Christopher",
+          "breakfast": "Rice & Beans",
+          "dinner": "Amala"
+        },
+        {
+          "day": "Thursday",
+          "person": "Prince & Chidera",
+          "breakfast": "Rice & Stew",
+          "dinner": "Stew Spaghetti"
+        },
+        {
+          "day": "Friday",
+          "person": "Mimi & Olayinka",
+          "breakfast": "Jollof Spag",
+          "dinner": "Beans"
+        },
+        {
+          "day": "Saturday",
+          "person": "Ofonime & Chidera",
+          "breakfast": "Rice & Stew",
+          "dinner": "Eba"
         }
       ]
     }
   },
-  "lastUpdated": "2026-07-19T11:49:55.845Z"
+  "lastUpdated": "2026-07-20T10:40:00.000Z"
 }

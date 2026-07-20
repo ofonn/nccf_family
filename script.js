@@ -7,12 +7,7 @@ let activeRosterId = null;
 // Predefined suggestion lists
 const PREDEFINED_SUGGESTIONS = {
   members: [
-    "Bro. Chidera", "Bro. Prince", "Bro. Segun", "Bro. Ofonime", "Bro. Christopher",
-    "Sis. Opeyemi", "Sis. Mimi", "Sis. Olayinka", "Sis. Judith",
-    "Chidera", "Prince", "Segun", "Ofonime", "Christopher", "Opeyemi", "Mimi", "Olayinka", "Judith",
-    "Group A (Judith & Opeyemi)", "Group B (Segun & Mimi)", "Group C (Ofonime & Olayinka)",
-    "Group D (Christopher & Prince)", "Group E (Chidera & Judith)", "Group A (Opeyemi & Segun)",
-    "NCCF Choir", "Congregation", "All Corpers", "All Corpers (General Sanitation)"
+    "Chidera", "Prince", "Segun", "Ofonime", "Christopher", "Opeyemi", "Mimi", "Olayinka", "Ola", "Judith", "Oluchi"
   ],
   events: [
     "Morning Prayer", "Evening Devotional: Hymns", "Theme Exposition", "Bible Study", "Praise & Worship",
@@ -25,6 +20,12 @@ const PREDEFINED_SUGGESTIONS = {
 document.addEventListener("DOMContentLoaded", async () => {
   const pageType = document.body.dataset.page;
   activeRosterId = document.body.dataset.rosterId;
+
+  // Load saved theme
+  const savedTheme = localStorage.getItem("nccf_theme");
+  if (savedTheme === "bright") {
+    document.body.classList.add("theme-bright");
+  }
 
   // Load latest data from Node Server API
   const rosters = await DB.loadRosters();
@@ -100,6 +101,18 @@ function setupCommonEventListeners() {
   // Floating Control Dock toggle logic
   const dock = document.getElementById("control-dock");
   const dockTrigger = document.getElementById("dock-trigger");
+  const btnToggleTheme = document.getElementById("btn-toggle-theme");
+
+  if (btnToggleTheme) {
+    btnToggleTheme.addEventListener("click", (e) => {
+      e.stopPropagation();
+      document.body.classList.toggle("theme-bright");
+      const isBright = document.body.classList.contains("theme-bright");
+      localStorage.setItem("nccf_theme", isBright ? "bright" : "dark");
+      showToast(`Switched to ${isBright ? "Bright" : "Dark"} Theme!`);
+    });
+  }
+
   if (dock && dockTrigger) {
     dockTrigger.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -129,6 +142,9 @@ function setupCommonEventListeners() {
         }
       }
     });
+
+    // Initialize Draggable Control Dock
+    makeDockDraggable(dock, dockTrigger);
   }
 }
 
@@ -197,16 +213,10 @@ function renderHubPage() {
 function roastersToCardsHTML(rosters) {
   let html = "";
   Object.keys(rosters).forEach(key => {
+    // Exclude cleaning and cooking from combined poster
+    if (key === "cleaning_roster" || key === "cooking_roster") return;
     const roster = rosters[key];
     
-    // Group by Day
-    const rowsByDay = {};
-    roster.rows.forEach(row => {
-      const day = row.day || "General";
-      if (!rowsByDay[day]) rowsByDay[day] = [];
-      rowsByDay[day].push(row);
-    });
-
     html += `
       <div class="board theme-${roster.id.split("_")[0]}">
         <div class="board-title-row">
@@ -214,6 +224,14 @@ function roastersToCardsHTML(rosters) {
           <h2>${roster.title}</h2>
         </div>
     `;
+
+    // Group by Day
+    const rowsByDay = {};
+    roster.rows.forEach(row => {
+      const day = row.day || "General";
+      if (!rowsByDay[day]) rowsByDay[day] = [];
+      rowsByDay[day].push(row);
+    });
 
     Object.keys(rowsByDay).forEach(day => {
       html += `
@@ -244,7 +262,7 @@ function roastersToCardsHTML(rosters) {
   return html;
 }
 
-// Render Individual Roster Page grouped by Day
+// Render Individual Roster Page grouped by Day (or as single consolidated week for cleaning/cooking)
 function renderRosterPage(rosterId) {
   const roster = editedRosters[rosterId];
   if (!roster) return;
@@ -255,68 +273,42 @@ function renderRosterPage(rosterId) {
 
   const hasEditAccess = DB.hasEditPermission(rosterId);
 
-  // Group rows by Day
-  const rowsByDay = {};
-  roster.rows.forEach((row, originalIndex) => {
-    const day = row.day || "General";
-    if (!rowsByDay[day]) rowsByDay[day] = [];
-    // Save the original index in the row object for buffer updates
-    rowsByDay[day].push({ data: row, index: originalIndex });
-  });
-
-  // Render a Table for each Day group
-  Object.keys(rowsByDay).forEach(day => {
-    const dayGroup = document.createElement("div");
-    dayGroup.className = "day-group";
-    dayGroup.style.marginBottom = "24px";
-
-    // Day Header Title Above the Table
-    const dayHeader = document.createElement("h3");
-    dayHeader.textContent = day;
-    dayHeader.style.fontFamily = "Georgia, serif";
-    dayHeader.style.fontSize = "15px";
-    dayHeader.style.color = "var(--accent-color)";
-    dayHeader.style.margin = "0 0 8px 4px";
-    dayHeader.style.borderBottom = "1px solid var(--border-color)";
-    dayHeader.style.paddingBottom = "4px";
-    dayGroup.appendChild(dayHeader);
-
-    // Dynamic Table inside wrapper
-    const subTableWrap = document.createElement("div");
-    subTableWrap.className = "table-wrap";
-    
+  // Consolidated Single Table layout for cleaning / cooking
+  if (rosterId === "cleaning_roster" || rosterId === "cooking_roster") {
     const table = document.createElement("table");
     
     // Header
     const thead = document.createElement("thead");
-    thead.innerHTML = `<tr>${roster.columns.map(col => `<th>${col.label}</th>`).join("")}</tr>`;
+    thead.innerHTML = `<tr><th style="width: 25%;">Day</th>${roster.columns.map(col => `<th>${col.label}</th>`).join("")}</tr>`;
     table.appendChild(thead);
-
+    
     // Body
     const tbody = document.createElement("tbody");
-    rowsByDay[day].forEach(rowItem => {
+    roster.rows.forEach((rowData, originalIndex) => {
       const tr = document.createElement("tr");
-      const rowData = rowItem.data;
-      const originalIndex = rowItem.index;
-
+      
+      // Day column
+      const tdDay = document.createElement("td");
+      tdDay.className = "day";
+      tdDay.textContent = rowData.day;
+      tr.appendChild(tdDay);
+      
+      // Other columns
       roster.columns.forEach(col => {
         const td = document.createElement("td");
         const value = rowData[col.key] || "";
         td.textContent = value;
         td.dataset.colKey = col.key;
         td.dataset.rowIndex = originalIndex;
-
-        // Apply editable triggers if authorized
+        
         if (hasEditAccess && col.editable) {
           td.classList.add("editable");
-          
-          // Apply background status classes for cells with unsaved changes in buffer
           const savedRosters = DB.getRosters();
           const savedValue = savedRosters[rosterId].rows[originalIndex][col.key] || "";
           if (value !== savedValue) {
             td.classList.add("has-unsaved-changes");
           }
-
+          
           td.addEventListener("click", () => {
             if (col.isTime) {
               enterTimeRangeEdit(td, roster, originalIndex, col.key);
@@ -329,94 +321,123 @@ function renderRosterPage(rosterId) {
       });
       tbody.appendChild(tr);
     });
-
     table.appendChild(tbody);
-    subTableWrap.appendChild(table);
-    dayGroup.appendChild(subTableWrap);
-    tableWrap.appendChild(dayGroup);
-  });
+    tableWrap.appendChild(table);
+  } else {
+    // Group rows by Day (for prayer and service)
+    const rowsByDay = {};
+    roster.rows.forEach((row, originalIndex) => {
+      const day = row.day || "General";
+      if (!rowsByDay[day]) rowsByDay[day] = [];
+      rowsByDay[day].push({ data: row, index: originalIndex });
+    });
+
+    // Render a Table for each Day group
+    Object.keys(rowsByDay).forEach(day => {
+      const dayGroup = document.createElement("div");
+      dayGroup.className = "day-group";
+      dayGroup.style.marginBottom = "24px";
+
+      const dayHeader = document.createElement("h3");
+      dayHeader.textContent = day;
+      dayHeader.style.fontFamily = "Georgia, serif";
+      dayHeader.style.fontSize = "15px";
+      dayHeader.style.color = "var(--accent-color)";
+      dayHeader.style.margin = "0 0 8px 4px";
+      dayHeader.style.borderBottom = "1px solid var(--border-color)";
+      dayHeader.style.paddingBottom = "4px";
+      dayGroup.appendChild(dayHeader);
+
+      const subTableWrap = document.createElement("div");
+      subTableWrap.className = "table-wrap";
+      
+      const table = document.createElement("table");
+      
+      const thead = document.createElement("thead");
+      thead.innerHTML = `<tr>${roster.columns.map(col => `<th>${col.label}</th>`).join("")}</tr>`;
+      table.appendChild(thead);
+
+      const tbody = document.createElement("tbody");
+      rowsByDay[day].forEach(rowItem => {
+        const tr = document.createElement("tr");
+        const rowData = rowItem.data;
+        const originalIndex = rowItem.index;
+
+        roster.columns.forEach(col => {
+          const td = document.createElement("td");
+          const value = rowData[col.key] || "";
+          td.textContent = value;
+          td.dataset.colKey = col.key;
+          td.dataset.rowIndex = originalIndex;
+
+          if (hasEditAccess && col.editable) {
+            td.classList.add("editable");
+            const savedRosters = DB.getRosters();
+            const savedValue = savedRosters[rosterId].rows[originalIndex][col.key] || "";
+            if (value !== savedValue) {
+              td.classList.add("has-unsaved-changes");
+            }
+
+            td.addEventListener("click", () => {
+              if (col.isTime) {
+                enterTimeRangeEdit(td, roster, originalIndex, col.key);
+              } else {
+                enterAutocompleteEdit(td, roster, originalIndex, col.key, col.list);
+              }
+            });
+          }
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      subTableWrap.appendChild(table);
+      dayGroup.appendChild(subTableWrap);
+      tableWrap.appendChild(dayGroup);
+    });
+  }
 
   // Bind controls (Save, Cancel, Reset, Download)
   setupRosterControlListeners(rosterId);
 }
 
-// Inline Select Dropdown Editor with Autocomplete option (replacing old input-datalist)
+// Custom Dropdown Editor with Autocomplete option (replaces native OS select)
 function enterAutocompleteEdit(td, roster, rowIndex, colKey, listType) {
   if (td.classList.contains("editing-cell")) return;
 
   const originalText = td.textContent.trim();
   td.classList.add("editing-cell");
 
-  // Create a container to hold select + pen button
-  const editContainer = document.createElement("div");
-  editContainer.style.display = "flex";
-  editContainer.style.alignItems = "center";
-  editContainer.style.gap = "4px";
-  editContainer.style.width = "100%";
-
-  // Create Select dropdown
-  const select = document.createElement("select");
-  select.style.flex = "1";
-  select.style.background = "var(--ink-light)";
-  select.style.border = "1px solid var(--accent-color)";
-  select.style.color = "var(--cream)";
-  select.style.padding = "6px";
-  select.style.borderRadius = "4px";
-  select.style.fontFamily = "inherit";
-  select.style.fontSize = "inherit";
-
-  // Create Pen button
-  const penBtn = document.createElement("button");
-  penBtn.type = "button";
-  penBtn.innerHTML = "✎";
-  penBtn.title = "Type custom value manually";
-  penBtn.style.padding = "6px 8px";
-  penBtn.style.background = "rgba(255, 255, 255, 0.08)";
-  penBtn.style.border = "1px solid rgba(255, 255, 255, 0.15)";
-  penBtn.style.color = "var(--accent-color)";
-  penBtn.style.borderRadius = "4px";
-  penBtn.style.cursor = "pointer";
-  penBtn.style.fontSize = "12px";
-  penBtn.style.display = "flex";
-  penBtn.style.alignItems = "center";
-  penBtn.style.justifyContent = "center";
-  penBtn.style.boxShadow = "none";
-  penBtn.style.transform = "none";
-
-  // Combine suggestions
+  // Gather suggestions
   const suggestions = new Set();
-
-  // Check if this is the Friday evening prayer event, to offer Discussion / Game Night
   if (roster.id === "prayer_roster" && colKey === "event" && roster.rows[rowIndex].day === "Friday") {
     suggestions.add("Discussion Night");
     suggestions.add("Game Night");
   }
-
-  // Predefined lists
   const listItems = PREDEFINED_SUGGESTIONS[listType] || [];
   listItems.forEach(item => suggestions.add(item));
-
-  // Current table text value
-  if (originalText) {
+  if (originalText && !suggestions.has(originalText)) {
     suggestions.add(originalText);
   }
 
-  // Populate options
-  suggestions.forEach(suggest => {
-    const option = document.createElement("option");
-    option.value = suggest;
-    option.textContent = suggest;
-    if (suggest === originalText) {
-      option.selected = true;
-    }
-    select.appendChild(option);
-  });
+  // Create custom popover
+  const popover = document.createElement("div");
+  popover.className = "custom-dropdown-popover";
 
-  editContainer.appendChild(select);
-  editContainer.appendChild(penBtn);
-  td.innerHTML = "";
-  td.appendChild(editContainer);
-  select.focus();
+  // Calculate coordinates
+  const rect = td.getBoundingClientRect();
+  popover.style.left = `${rect.left}px`;
+  popover.style.top = `${rect.bottom}px`;
+  popover.style.width = `${Math.max(rect.width, 220)}px`;
+
+  // Append to body to avoid overflow issues
+  document.body.appendChild(popover);
+
+  // Position adjustment if opening off-screen bottom
+  const popoverHeight = Math.min(220, (suggestions.size + 1) * 44);
+  if (rect.bottom + popoverHeight > window.innerHeight) {
+    popover.style.top = `${rect.top - popoverHeight}px`;
+  }
 
   const saveCell = (newValue) => {
     td.classList.remove("editing-cell");
@@ -437,8 +458,50 @@ function enterAutocompleteEdit(td, roster, rowIndex, colKey, listType) {
     performClashCheck(); // Re-trigger live clash check
   };
 
+  const closeDropdown = () => {
+    if (document.body.contains(popover)) {
+      document.body.removeChild(popover);
+    }
+    document.removeEventListener("click", handleOutsideClick);
+  };
+
+  const handleOutsideClick = (e) => {
+    if (!popover.contains(e.target) && e.target !== td) {
+      closeDropdown();
+      saveCell(originalText);
+    }
+  };
+
+  // Populate options in custom popover
+  suggestions.forEach(suggest => {
+    const item = document.createElement("div");
+    item.className = "custom-dropdown-item";
+    item.textContent = suggest;
+    item.addEventListener("click", (e) => {
+      e.stopPropagation();
+      saveCell(suggest);
+      closeDropdown();
+    });
+    popover.appendChild(item);
+  });
+
+  // Add Custom Write option
+  const writeOption = document.createElement("div");
+  writeOption.className = "custom-dropdown-item write-custom-item";
+  writeOption.innerHTML = "✎ Write Custom...";
+  writeOption.addEventListener("click", (e) => {
+    e.stopPropagation();
+    closeDropdown();
+    switchToInput();
+  });
+  popover.appendChild(writeOption);
+
+  // Register click outside
+  setTimeout(() => {
+    document.addEventListener("click", handleOutsideClick);
+  }, 10);
+
   const switchToInput = () => {
-    // Replace container with text input
     const input = document.createElement("input");
     input.type = "text";
     input.value = originalText;
@@ -464,30 +527,6 @@ function enterAutocompleteEdit(td, roster, rowIndex, colKey, listType) {
       if (e.key === "Escape") saveCell(originalText);
     });
   };
-
-  // Click pen to type manually
-  penBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    switchToInput();
-  });
-
-  select.addEventListener("change", () => {
-    saveCell(select.value);
-  });
-
-  select.addEventListener("blur", (e) => {
-    // If we blurred because we are clicking the penBtn, do not save yet
-    if (e.relatedTarget === penBtn) return;
-    saveCell(select.value);
-  });
-
-  select.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      saveCell(select.value);
-    } else if (e.key === "Escape") {
-      saveCell(originalText);
-    }
-  });
 }
 
 // Generate 30-minute interval items for time range selects
@@ -836,36 +875,59 @@ function downloadSingleRoster(roster) {
   captureContainer.className = "canvas-capture-container";
   captureContainer.classList.add(`theme-${roster.id.split("_")[0]}`);
   
-  // Group by Day
-  const rowsByDay = {};
-  roster.rows.forEach(row => {
-    const day = row.day || "General";
-    if (!rowsByDay[day]) rowsByDay[day] = [];
-    rowsByDay[day].push(row);
-  });
-
   let tablesHTML = "";
-  Object.keys(rowsByDay).forEach(day => {
-    tablesHTML += `
-      <div class="day-group" style="margin-top: 20px; text-align: left;">
-        <h3 style="font-family: Georgia, serif; font-size: 15px; color: var(--accent-color); margin: 0 0 6px 4px; border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">${day}</h3>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>${roster.columns.map(c => `<th>${c.label}</th>`).join("")}</tr>
-            </thead>
-            <tbody>
-              ${rowsByDay[day].map(row => `
-                <tr>
-                  ${roster.columns.map(c => `<td>${row[c.key] || ""}</td>`).join("")}
-                </tr>
-              `).join("")}
-            </tbody>
-          </table>
-        </div>
+  if (roster.id === "cleaning_roster" || roster.id === "cooking_roster") {
+    tablesHTML = `
+      <div class="table-wrap" style="margin-top: 20px;">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 25%;">Day</th>
+              ${roster.columns.map(c => `<th>${c.label}</th>`).join("")}
+            </tr>
+          </thead>
+          <tbody>
+            ${roster.rows.map(row => `
+              <tr>
+                <td class="day">${row.day}</td>
+                ${roster.columns.map(c => `<td>${row[c.key] || ""}</td>`).join("")}
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
       </div>
     `;
-  });
+  } else {
+    // Group by Day
+    const rowsByDay = {};
+    roster.rows.forEach(row => {
+      const day = row.day || "General";
+      if (!rowsByDay[day]) rowsByDay[day] = [];
+      rowsByDay[day].push(row);
+    });
+
+    Object.keys(rowsByDay).forEach(day => {
+      tablesHTML += `
+        <div class="day-group" style="margin-top: 20px; text-align: left;">
+          <h3 style="font-family: Georgia, serif; font-size: 15px; color: var(--accent-color); margin: 0 0 6px 4px; border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">${day}</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>${roster.columns.map(c => `<th>${c.label}</th>`).join("")}</tr>
+              </thead>
+              <tbody>
+                ${rowsByDay[day].map(row => `
+                  <tr>
+                    ${roster.columns.map(c => `<td>${row[c.key] || ""}</td>`).join("")}
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    });
+  }
 
   captureContainer.innerHTML = `
     <div class="canvas-header">
@@ -947,4 +1009,91 @@ function downloadCombinedSchedule(cardsHTML) {
     document.body.removeChild(captureContainer);
     showToast("Export failed! Local file security might be blocking canvas render.", true);
   });
+}
+
+// Draggable Control Dock Helper Implementation
+function makeDockDraggable(dock, trigger) {
+  if (!dock || !trigger) return;
+
+  let isDragging = false;
+  let startX = 0;
+  let startY = 0;
+  let startLeft = 0;
+  let startTop = 0;
+  let hasMoved = false;
+
+  trigger.addEventListener("mousedown", dragStart);
+  trigger.addEventListener("touchstart", dragStart, { passive: true });
+
+  function dragStart(e) {
+    if (e.target.closest(".dock-content")) return;
+
+    isDragging = true;
+    hasMoved = false;
+
+    const clientX = e.type === "touchstart" ? e.touches[0].clientX : e.clientX;
+    const clientY = e.type === "touchstart" ? e.touches[0].clientY : e.clientY;
+
+    startX = clientX;
+    startY = clientY;
+
+    const rect = dock.getBoundingClientRect();
+    startLeft = rect.left;
+    startTop = rect.top;
+
+    dock.style.bottom = "auto";
+    dock.style.right = "auto";
+    dock.style.left = `${startLeft}px`;
+    dock.style.top = `${startTop}px`;
+
+    document.addEventListener("mousemove", dragMove);
+    document.addEventListener("touchmove", dragMove, { passive: false });
+    document.addEventListener("mouseup", dragEnd);
+    document.addEventListener("touchend", dragEnd);
+  }
+
+  function dragMove(e) {
+    if (!isDragging) return;
+    if (e.type === "touchmove") e.preventDefault();
+
+    const clientX = e.type === "touchmove" ? e.touches[0].clientX : e.clientX;
+    const clientY = e.type === "touchmove" ? e.touches[0].clientY : e.clientY;
+
+    const dx = clientX - startX;
+    const dy = clientY - startY;
+
+    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+      hasMoved = true;
+    }
+
+    let newLeft = startLeft + dx;
+    let newTop = startTop + dy;
+
+    const docWidth = window.innerWidth;
+    const docHeight = window.innerHeight;
+    const dockRect = dock.getBoundingClientRect();
+
+    if (newLeft < 10) newLeft = 10;
+    if (newLeft > docWidth - dockRect.width - 10) newLeft = docWidth - dockRect.width - 10;
+    if (newTop < 10) newTop = 10;
+    if (newTop > docHeight - dockRect.height - 10) newTop = docHeight - dockRect.height - 10;
+
+    dock.style.left = `${newLeft}px`;
+    dock.style.top = `${newTop}px`;
+  }
+
+  function dragEnd(e) {
+    isDragging = false;
+    document.removeEventListener("mousemove", dragMove);
+    document.removeEventListener("touchmove", dragMove);
+    document.removeEventListener("mouseup", dragEnd);
+    document.removeEventListener("touchend", dragEnd);
+
+    if (hasMoved) {
+      trigger.style.pointerEvents = "none";
+      setTimeout(() => {
+        trigger.style.pointerEvents = "auto";
+      }, 50);
+    }
+  }
 }
