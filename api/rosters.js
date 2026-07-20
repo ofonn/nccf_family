@@ -1,13 +1,7 @@
-const { createClient } = require('@supabase/supabase-js');
 const crypto = require('crypto');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-
-let supabase = null;
-if (SUPABASE_URL && SUPABASE_SERVICE_KEY) {
-  supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-}
 
 const HASHES = {
   master: "9d598ba5b4f3fda46daa17f9c0ff96ce72f6c6390a8b0488fcbc2ddd57dcdc0a", // nccfadmin
@@ -112,43 +106,44 @@ function sha256(str) {
   return crypto.createHash('sha256').update(str).digest('hex');
 }
 
-// Read or initialize rosters data
+// Read from Supabase REST API (Ultra fast cold starts)
 async function loadRostersData() {
-  if (supabase) {
+  if (SUPABASE_URL && SUPABASE_SERVICE_KEY) {
     try {
-      const { data, error } = await supabase
-        .from('rosters_data')
-        .select('data')
-        .eq('id', 1)
-        .single();
-
-      if (error && error.code !== 'PGRST116') throw error;
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/rosters_data?id=eq.1&select=data`, {
+        headers: {
+          'apikey': SUPABASE_SERVICE_KEY,
+          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`
+        }
+      });
+      const data = await res.json();
       
-      if (data && data.data && data.data.rosters) {
-        return data.data;
+      if (data && data.length > 0 && data[0].data && data[0].data.rosters) {
+        return data[0].data;
       }
     } catch (e) {
-      console.error("Failed to connect to Supabase:", e);
+      console.error("Fast fetch failed:", e);
     }
   }
-  
-  // Return defaults if db is empty or fails
-  return {
-    rosters: DEFAULT_ROSTERS,
-    lastUpdated: new Date().toISOString()
-  };
+  return { rosters: DEFAULT_ROSTERS, lastUpdated: new Date().toISOString() };
 }
 
-// Save rosters back to Supabase
+// Save to Supabase REST API
 async function saveRostersData(rostersData) {
-  if (supabase) {
+  if (SUPABASE_URL && SUPABASE_SERVICE_KEY) {
     try {
-      const { error } = await supabase
-        .from('rosters_data')
-        .upsert({ id: 1, data: rostersData, updated_at: new Date().toISOString() });
-      if (error) console.warn("Supabase update failed:", error);
+      await fetch(`${SUPABASE_URL}/rest/v1/rosters_data?id=eq.1`, {
+        method: 'PATCH',
+        headers: {
+          'apikey': SUPABASE_SERVICE_KEY,
+          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({ data: rostersData, updated_at: new Date().toISOString() })
+      });
     } catch (e) {
-      console.error("Failed to update Supabase:", e);
+      console.error("Fast save failed:", e);
     }
   }
 }
@@ -163,11 +158,14 @@ function getRequestBody(req) {
 }
 
 module.exports = async (req, res) => {
-  // CORS Headers for local development if needed
+  // CORS and Cache control to prevent browsers from caching stale resets
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
   res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, x-auth-password, x-action');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
 
   if (req.method === 'OPTIONS') {
     res.status(200).end();
