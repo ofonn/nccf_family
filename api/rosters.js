@@ -3,6 +3,42 @@ const crypto = require('crypto');
 const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\s+/g, '');
 const SUPABASE_SERVICE_KEY = (process.env.SUPABASE_SERVICE_KEY || '').replace(/\s+/g, '');
 
+const https = require('https');
+
+// Custom fetch to force IPv4 and bypass Node.js 30-second IPv6 timeout bug
+function fetchIPv4(url, options = {}) {
+  return new Promise((resolve, reject) => {
+    const urlObj = new URL(url);
+    const reqOptions = {
+      hostname: urlObj.hostname,
+      port: urlObj.port || 443,
+      path: urlObj.pathname + urlObj.search,
+      method: options.method || 'GET',
+      headers: options.headers || {},
+      family: 4 // FORCE IPv4
+    };
+
+    const req = https.request(reqOptions, (res) => {
+      let body = '';
+      res.on('data', chunk => body += chunk);
+      res.on('end', () => {
+        resolve({
+          ok: res.statusCode >= 200 && res.statusCode < 300,
+          status: res.statusCode,
+          text: async () => body,
+          json: async () => JSON.parse(body)
+        });
+      });
+    });
+
+    req.on('error', reject);
+    if (options.body) {
+      req.write(options.body);
+    }
+    req.end();
+  });
+}
+
 const HASHES = {
   master: "9d598ba5b4f3fda46daa17f9c0ff96ce72f6c6390a8b0488fcbc2ddd57dcdc0a", // nccfadmin
   prayer_coordinator: "559cbfb727a428db14c17b3a925c201ac283e3800b3e034f55153077d8d56e29" // nccfprayer
