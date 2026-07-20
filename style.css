@@ -811,6 +811,25 @@ button.danger-outline:hover, .btn.danger-outline:hover {
   display: inline-block;
 }
 
+/* Section Header inside Dock */
+.dock-nav-header {
+  font-size: 9px;
+  color: #8B8395;
+  margin-top: 10px;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 700;
+  padding-left: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 10px;
+}
+
+body.theme-bright .dock-nav-header {
+  color: #64748B !important;
+  border-top-color: rgba(0, 102, 238, 0.1) !important;
+}
+
 /* Redesign active states (flat colors instead of huge boxes) */
 .dock-btn.save-btn {
   color: #2ECC71 !important;
