@@ -176,6 +176,7 @@ function updateStatusIndicators() {
 
   const btnSave = document.getElementById("btn-save");
   const btnCancel = document.getElementById("btn-cancel");
+  const btnReset = document.getElementById("btn-reset");
 
   if (authLevel) {
     document.body.classList.add("editing-active");
@@ -187,6 +188,7 @@ function updateStatusIndicators() {
     if (btnDisableEdit) btnDisableEdit.style.display = "flex";
     if (btnSave) btnSave.style.display = "flex";
     if (btnCancel) btnCancel.style.display = "flex";
+    if (btnReset) btnReset.style.display = "flex";
   } else {
     document.body.classList.remove("editing-active");
     if (statusDot) statusDot.classList.remove("active");
@@ -195,6 +197,7 @@ function updateStatusIndicators() {
     if (btnDisableEdit) btnDisableEdit.style.display = "none";
     if (btnSave) btnSave.style.display = "none";
     if (btnCancel) btnCancel.style.display = "none";
+    if (btnReset) btnReset.style.display = "none";
   }
 }
 
@@ -301,22 +304,7 @@ function renderRosterPage(rosterId) {
         td.dataset.colKey = col.key;
         td.dataset.rowIndex = originalIndex;
         
-        if (hasEditAccess && col.editable) {
-          td.classList.add("editable");
-          const savedRosters = DB.getRosters();
-          const savedValue = savedRosters[rosterId].rows[originalIndex][col.key] || "";
-          if (value !== savedValue) {
-            td.classList.add("has-unsaved-changes");
-          }
-          
-          td.addEventListener("click", () => {
-            if (col.isTime) {
-              enterTimeRangeEdit(td, roster, originalIndex, col.key);
-            } else {
-              enterAutocompleteEdit(td, roster, originalIndex, col.key, col.list);
-            }
-          });
-        }
+        bindCellEditEvents(td, roster, originalIndex, col, hasEditAccess);
         tr.appendChild(td);
       });
       tbody.appendChild(tr);
@@ -370,22 +358,7 @@ function renderRosterPage(rosterId) {
           td.dataset.colKey = col.key;
           td.dataset.rowIndex = originalIndex;
 
-          if (hasEditAccess && col.editable) {
-            td.classList.add("editable");
-            const savedRosters = DB.getRosters();
-            const savedValue = savedRosters[rosterId].rows[originalIndex][col.key] || "";
-            if (value !== savedValue) {
-              td.classList.add("has-unsaved-changes");
-            }
-
-            td.addEventListener("click", () => {
-              if (col.isTime) {
-                enterTimeRangeEdit(td, roster, originalIndex, col.key);
-              } else {
-                enterAutocompleteEdit(td, roster, originalIndex, col.key, col.list);
-              }
-            });
-          }
+          bindCellEditEvents(td, roster, originalIndex, col, hasEditAccess);
           tr.appendChild(td);
         });
         tbody.appendChild(tr);
@@ -402,11 +375,62 @@ function renderRosterPage(rosterId) {
 }
 
 // Custom Dropdown Editor with Autocomplete option (replaces native OS select)
-function enterAutocompleteEdit(td, roster, rowIndex, colKey, listType) {
+function enterAutocompleteEdit(td, roster, rowIndex, colKey, listType, directManualInput = false) {
   if (td.classList.contains("editing-cell")) return;
 
   const originalText = td.textContent.trim();
   td.classList.add("editing-cell");
+
+  const saveCell = (newValue) => {
+    td.classList.remove("editing-cell");
+    td.textContent = newValue;
+
+    const savedRosters = DB.getRosters();
+    const originalValue = savedRosters[roster.id].rows[rowIndex][colKey] || "";
+
+    if (newValue !== originalValue) {
+      roster.rows[rowIndex][colKey] = newValue;
+      td.classList.add("has-unsaved-changes");
+    } else {
+      roster.rows[rowIndex][colKey] = originalValue;
+      td.classList.remove("has-unsaved-changes");
+    }
+
+    checkUnsavedChangesBadge(roster);
+    performClashCheck(); // Re-trigger live clash check
+  };
+
+  const switchToInput = () => {
+    const input = document.createElement("input");
+    input.type = "text";
+    input.value = originalText;
+    input.style.width = "100%";
+    input.style.background = "transparent";
+    input.style.border = "1px solid var(--accent-color)";
+    input.style.color = "var(--cream)";
+    input.style.padding = "6px";
+    input.style.borderRadius = "4px";
+
+    td.innerHTML = "";
+    td.appendChild(input);
+    input.focus();
+    input.select();
+
+    const saveInput = () => {
+      saveCell(input.value.trim());
+    };
+
+    input.addEventListener("blur", saveInput);
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") saveInput();
+      if (e.key === "Escape") saveCell(originalText);
+    });
+  };
+
+  if (directManualInput) {
+    switchToInput();
+    return;
+  }
 
   // Gather suggestions
   const suggestions = new Set();
@@ -438,25 +462,6 @@ function enterAutocompleteEdit(td, roster, rowIndex, colKey, listType) {
   if (rect.bottom + popoverHeight > window.innerHeight) {
     popover.style.top = `${rect.top - popoverHeight}px`;
   }
-
-  const saveCell = (newValue) => {
-    td.classList.remove("editing-cell");
-    td.textContent = newValue;
-
-    const savedRosters = DB.getRosters();
-    const originalValue = savedRosters[roster.id].rows[rowIndex][colKey] || "";
-
-    if (newValue !== originalValue) {
-      roster.rows[rowIndex][colKey] = newValue;
-      td.classList.add("has-unsaved-changes");
-    } else {
-      roster.rows[rowIndex][colKey] = originalValue;
-      td.classList.remove("has-unsaved-changes");
-    }
-
-    checkUnsavedChangesBadge(roster);
-    performClashCheck(); // Re-trigger live clash check
-  };
 
   const closeDropdown = () => {
     if (document.body.contains(popover)) {
@@ -500,33 +505,6 @@ function enterAutocompleteEdit(td, roster, rowIndex, colKey, listType) {
   setTimeout(() => {
     document.addEventListener("click", handleOutsideClick);
   }, 10);
-
-  const switchToInput = () => {
-    const input = document.createElement("input");
-    input.type = "text";
-    input.value = originalText;
-    input.style.width = "100%";
-    input.style.background = "transparent";
-    input.style.border = "1px solid var(--accent-color)";
-    input.style.color = "var(--cream)";
-    input.style.padding = "6px";
-    input.style.borderRadius = "4px";
-
-    td.innerHTML = "";
-    td.appendChild(input);
-    input.focus();
-    input.select();
-
-    const saveInput = () => {
-      saveCell(input.value.trim());
-    };
-
-    input.addEventListener("blur", saveInput);
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") saveInput();
-      if (e.key === "Escape") saveCell(originalText);
-    });
-  };
 }
 
 // Generate 30-minute interval items for time range selects
@@ -1097,3 +1075,73 @@ function makeDockDraggable(dock, trigger) {
     }
   }
 }
+
+// Bind cell edit events to support click (dropdown) and long-press (manual input)
+function bindCellEditEvents(td, roster, originalIndex, col, hasEditAccess) {
+  if (!hasEditAccess || !col.editable) return;
+
+  td.classList.add("editable");
+  
+  // Apply visual indicators for unsaved buffer changes
+  const savedRosters = DB.getRosters();
+  const savedValue = savedRosters[roster.id].rows[originalIndex][col.key] || "";
+  if (td.textContent.trim() !== savedValue) {
+    td.classList.add("has-unsaved-changes");
+  }
+
+  let touchTimeout = null;
+  let isLongPress = false;
+  let startX = 0;
+  let startY = 0;
+
+  td.addEventListener("touchstart", (e) => {
+    isLongPress = false;
+    const touch = e.touches[0];
+    startX = touch.clientX;
+    startY = touch.clientY;
+
+    touchTimeout = setTimeout(() => {
+      isLongPress = true;
+      if (navigator.vibrate) navigator.vibrate(50);
+      
+      if (col.isTime) {
+        enterTimeRangeEdit(td, roster, originalIndex, col.key);
+      } else {
+        enterAutocompleteEdit(td, roster, originalIndex, col.key, col.list, true);
+      }
+    }, 600); // 600ms hold time to trigger direct manual text input
+  }, { passive: true });
+
+  td.addEventListener("touchmove", (e) => {
+    if (touchTimeout) {
+      const touch = e.touches[0];
+      if (Math.abs(touch.clientX - startX) > 10 || Math.abs(touch.clientY - startY) > 10) {
+        clearTimeout(touchTimeout);
+        touchTimeout = null;
+      }
+    }
+  }, { passive: true });
+
+  td.addEventListener("touchend", () => {
+    if (touchTimeout) {
+      clearTimeout(touchTimeout);
+      touchTimeout = null;
+    }
+  });
+
+  td.addEventListener("click", (e) => {
+    if (isLongPress) {
+      isLongPress = false;
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    
+    if (col.isTime) {
+      enterTimeRangeEdit(td, roster, originalIndex, col.key);
+    } else {
+      enterAutocompleteEdit(td, roster, originalIndex, col.key, col.list, false);
+    }
+  });
+}
+

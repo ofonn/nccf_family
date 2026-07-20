@@ -142,29 +142,83 @@ function getRequestBody(req) {
   });
 }
 
-// Read or initialize rosters.json
-function loadRostersFromFile() {
+const JSONBIN_BIN_ID = process.env.JSONBIN_BIN_ID;
+const JSONBIN_API_KEY = process.env.JSONBIN_API_KEY;
+
+// Read or initialize rosters data (JSONBin.io or local file fallback)
+async function loadRostersData() {
+  if (JSONBIN_BIN_ID && JSONBIN_API_KEY) {
+    try {
+      console.log("Fetching rosters from JSONBin.io cloud database...");
+      const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+        method: "GET",
+        headers: {
+          "X-Master-Key": JSONBIN_API_KEY,
+          "X-Bin-Meta": "false"
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.rosters) {
+          return data;
+        }
+      }
+      console.warn("JSONBin fetch failed, falling back to local file.");
+    } catch (e) {
+      console.error("Failed to connect to JSONBin.io:", e);
+    }
+  }
+
+  // Local File Fallback
   if (fs.existsSync(DATA_FILE)) {
     try {
       const content = fs.readFileSync(DATA_FILE, 'utf-8');
       return JSON.parse(content);
     } catch (e) {
-      console.error("Error reading rosters.json, resetting to defaults...", e);
+      console.error("Error reading rosters.json fallback, resetting to defaults...", e);
     }
   }
   
-  // Write default config
+  // Write default config to local file
   const initialData = {
     rosters: DEFAULT_ROSTERS,
     lastUpdated: new Date().toISOString()
   };
-  fs.writeFileSync(DATA_FILE, JSON.stringify(initialData, null, 2), 'utf-8');
+  try {
+    fs.writeFileSync(DATA_FILE, JSON.stringify(initialData, null, 2), 'utf-8');
+  } catch (err) {}
   return initialData;
 }
 
-// Save rosters back to file
-function saveRostersToFile(rostersData) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(rostersData, null, 2), 'utf-8');
+// Save rosters back to file and JSONBin.io
+async function saveRostersData(rostersData) {
+  if (JSONBIN_BIN_ID && JSONBIN_API_KEY) {
+    try {
+      console.log("Updating rosters on JSONBin.io cloud database...");
+      const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+        method: "PUT",
+        headers: {
+          "X-Master-Key": JSONBIN_API_KEY,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(rostersData)
+      });
+      if (res.ok) {
+        console.log("JSONBin.io update succeeded!");
+      } else {
+        console.warn("JSONBin.io update failed with status:", res.status);
+      }
+    } catch (e) {
+      console.error("Failed to update JSONBin.io:", e);
+    }
+  }
+
+  // Always write locally too as redundancy/backup
+  try {
+    fs.writeFileSync(DATA_FILE, JSON.stringify(rostersData, null, 2), 'utf-8');
+  } catch (err) {
+    console.error("Failed to write fallback rosters.json file:", err);
+  }
 }
 
 // HTTP Server Listener
@@ -174,7 +228,7 @@ const server = http.createServer(async (req, res) => {
 
   // API ROUTE: GET /api/rosters
   if (pathname === '/api/rosters' && req.method === 'GET') {
-    const data = loadRostersFromFile();
+    const data = await loadRostersData();
     res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' });
     return res.end(JSON.stringify(data));
   }
@@ -208,7 +262,7 @@ const server = http.createServer(async (req, res) => {
           rosters: DEFAULT_ROSTERS,
           lastUpdated: new Date().toISOString()
         };
-        saveRostersToFile(resetData);
+        await saveRostersData(resetData);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         return res.end(JSON.stringify({ success: true, message: "Rosters reset to defaults successfully." }));
       }
@@ -217,7 +271,7 @@ const server = http.createServer(async (req, res) => {
       const body = await getRequestBody(req);
       const newPayload = JSON.parse(body);
       
-      const fileData = loadRostersFromFile();
+      const fileData = await loadRostersData();
       
       if (authLevel === 'master') {
         fileData.rosters = newPayload;

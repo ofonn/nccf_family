@@ -67,116 +67,133 @@ body.theme-cooking {
 
 /* Comprehensive Bright Theme (Holy Silky White & Heavenly Blue) overrides */
 body.theme-bright {
-  --bg-gradient: radial-gradient(ellipse at top, #F4F7FC 0%, #FFFFFF 100%) !important;
-  --accent-color: #007AFF !important;
-  --accent-secondary: #0056B3 !important;
+  --bg-gradient: radial-gradient(ellipse at top, #EBF3FC 0%, #FFFFFF 100%) !important;
+  --accent-color: #0066EE !important;
+  --accent-secondary: #0044CC !important;
   --card-bg: #FFFFFF !important;
-  --border-color: rgba(0, 122, 255, 0.18) !important;
-  background: radial-gradient(ellipse at top, #F4F7FC 0%, #FFFFFF 100%) !important;
-  color: #1E293B !important;
+  --border-color: #0066EE !important;
+  background: radial-gradient(ellipse at top, #EBF3FC 0%, #FFFFFF 100%) !important;
+  color: #0B0F19 !important;
 }
 
 body.theme-bright::before {
-  opacity: 0.015 !important;
+  opacity: 0.01 !important;
 }
 
 body.theme-bright h1, 
 body.theme-bright h2, 
 body.theme-bright h3,
 body.theme-bright h4,
-body.theme-bright .day,
 body.theme-bright #page-title {
-  color: #007AFF !important;
+  color: #0055DD !important;
+  font-weight: 800 !important;
 }
 
 body.theme-bright p, 
-body.theme-bright td, 
-body.theme-bright th,
 body.theme-bright li,
 body.theme-bright span,
-body.theme-bright div.footer-note,
-body.theme-bright .eyebrow {
-  color: #334155 !important;
+body.theme-bright div.footer-note {
+  color: #1E293B !important;
+  font-weight: 600 !important;
 }
 
 body.theme-bright .eyebrow {
-  color: #007AFF !important;
-  opacity: 0.8;
+  color: #0055DD !important;
+  font-weight: 800 !important;
+  opacity: 0.9;
 }
 
 body.theme-bright thead th {
-  background: #007AFF !important;
+  background: #0055DD !important;
   color: #FFFFFF !important;
+  font-weight: 800 !important;
+  font-size: 13px !important;
+}
+
+body.theme-bright td {
+  color: #0F172A !important;
+  font-weight: 700 !important; /* Make table cells much bolder */
+  font-size: 13px !important;
+}
+
+body.theme-bright .day {
+  color: #0044CC !important;
+  font-weight: 800 !important;
 }
 
 body.theme-bright tbody tr:nth-child(even) {
-  background: rgba(0, 122, 255, 0.04) !important;
+  background: rgba(0, 102, 238, 0.05) !important;
 }
 
 body.theme-bright tbody tr {
-  border-bottom: 1px dashed rgba(0, 122, 255, 0.15) !important;
+  border-bottom: 1.5px solid rgba(0, 102, 238, 0.15) !important;
 }
 
 body.theme-bright td.editable:hover {
-  background: rgba(0, 122, 255, 0.06) !important;
+  background: rgba(0, 102, 238, 0.08) !important;
 }
 
 body.theme-bright .board {
   background: #FFFFFF !important;
-  border: 1.5px solid rgba(0, 122, 255, 0.2) !important;
-  box-shadow: 0 16px 40px rgba(0, 122, 255, 0.06) !important;
+  border: 2px solid #0055DD !important; /* Thick contrast border */
+  box-shadow: 0 16px 40px rgba(0, 85, 221, 0.08) !important;
 }
 
 body.theme-bright .board-title-row .icon {
-  filter: drop-shadow(0 0 4px rgba(0, 122, 255, 0.2));
+  filter: drop-shadow(0 0 4px rgba(0, 85, 221, 0.3));
 }
 
 body.theme-bright .status-bar {
-  color: #64748B !important;
-  border-top-color: rgba(0, 122, 255, 0.1) !important;
+  color: #334155 !important;
+  border-top: 1px solid rgba(0, 85, 221, 0.2) !important;
+  font-weight: 700 !important;
 }
 
 body.theme-bright .status-badge {
-  background: rgba(0, 122, 255, 0.06) !important;
-  color: #007AFF !important;
+  background: rgba(0, 102, 238, 0.08) !important;
+  color: #0055DD !important;
+  font-weight: 800 !important;
 }
 
 body.theme-bright #clash-checker-board {
-  border-color: rgba(0, 122, 255, 0.15) !important;
+  border: 2px solid #0055DD !important;
 }
 
 body.theme-bright .clash-item {
-  background: rgba(235, 87, 87, 0.08) !important;
+  background: rgba(235, 87, 87, 0.1) !important;
+  border-left: 4px solid #EB5757 !important;
 }
 
 body.theme-bright .control-dock-container .dock-content {
-  background: rgba(255, 255, 255, 0.98) !important;
-  border: 1.5px solid rgba(0, 122, 255, 0.25) !important;
-  box-shadow: 0 16px 48px rgba(0, 122, 255, 0.15) !important;
+  background: rgba(255, 255, 255, 0.99) !important;
+  border: 2px solid #0055DD !important;
+  box-shadow: 0 16px 48px rgba(0, 85, 221, 0.15) !important;
 }
 
 body.theme-bright .dock-status {
-  color: #475569 !important;
-  border-bottom-color: rgba(0, 122, 255, 0.12) !important;
+  color: #1E293B !important;
+  border-bottom: 1.5px solid rgba(0, 85, 221, 0.15) !important;
+  font-weight: 700 !important;
 }
 
 body.theme-bright .dock-btn {
-  color: #007AFF !important;
-  border-bottom: 1px solid rgba(0, 122, 255, 0.08) !important;
+  color: #0055DD !important;
+  border-bottom: 1.5px solid rgba(0, 85, 221, 0.08) !important;
+  font-weight: 800 !important;
 }
 
 body.theme-bright .dock-btn:hover {
-  background: rgba(0, 122, 255, 0.05) !important;
-  color: #0056B3 !important;
+  background: rgba(0, 85, 221, 0.06) !important;
+  color: #0033AA !important;
 }
 
 body.theme-bright .dock-btn.save-btn {
-  color: #2ECC71 !important;
+  color: #27AE60 !important;
 }
 
 body.theme-bright .dock-btn.cancel-btn,
 body.theme-bright .dock-btn.reset-btn {
-  color: #E74C3C !important;
+  color: #C0392B !important;
 }
 
 /* Base resets */
@@ -1119,16 +1136,17 @@ td.has-unsaved-changes::before {
   left: -9999px;
   top: -9999px;
   width: 600px;
-  background: radial-gradient(circle at 50% 0%, #201726 0%, #0E0914 100%);
+  background: radial-gradient(ellipse at top, #EBF3FC 0%, #FFFFFF 100%) !important;
   padding: 40px;
   border-radius: 0;
   box-sizing: border-box;
+  color: #0F172A !important;
 }
 
 .canvas-capture-container .canvas-header {
   text-align: center;
   margin-bottom: 30px;
-  border-bottom: 2px dashed rgba(227, 169, 74, 0.3);
+  border-bottom: 2.5px dashed rgba(0, 102, 238, 0.3) !important;
   padding-bottom: 20px;
 }
 
@@ -1139,15 +1157,17 @@ td.has-unsaved-changes::before {
 
 .canvas-capture-container .canvas-header h1 {
   font-family: Georgia, serif;
-  font-size: 28px;
-  color: var(--cream);
+  font-size: 30px;
+  color: #0055DD !important;
+  font-weight: 800 !important;
   margin: 0;
 }
 
 .canvas-capture-container .canvas-header p {
-  color: var(--amber);
+  color: #0044CC !important;
   text-transform: uppercase;
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 800 !important;
   letter-spacing: 2px;
   margin: 5px 0 0;
 }
@@ -1155,18 +1175,47 @@ td.has-unsaved-changes::before {
 .canvas-capture-container .canvas-footer {
   text-align: center;
   margin-top: 30px;
-  border-top: 1px solid rgba(227, 169, 74, 0.2);
+  border-top: 1.5px solid rgba(0, 85, 221, 0.2) !important;
   padding-top: 15px;
-  font-size: 13px;
+  font-size: 14px;
   font-style: italic;
-  color: var(--amber);
+  font-weight: 700 !important;
+  color: #0055DD !important;
 }
 
 .canvas-capture-container .board {
-  border: 1px solid rgba(227, 169, 74, 0.3);
-  box-shadow: none;
-  background: rgba(23, 19, 31, 0.95);
+  border: 2px solid #0055DD !important;
+  box-shadow: none !important;
+  background: #FFFFFF !important;
   margin-bottom: 30px;
+  color: #0F172A !important;
+}
+
+.canvas-capture-container .board h2,
+.canvas-capture-container .board h3,
+.canvas-capture-container .board .day {
+  color: #0055DD !important;
+  font-weight: 800 !important;
+}
+
+.canvas-capture-container .board td {
+  color: #0F172A !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+}
+
+.canvas-capture-container .board thead th {
+  background: #0055DD !important;
+  color: #FFFFFF !important;
+  font-weight: 800 !important;
+}
+
+.canvas-capture-container .board tbody tr:nth-child(even) {
+  background: rgba(0, 102, 238, 0.05) !important;
+}
+
+.canvas-capture-container .board tbody tr {
+  border-bottom: 1.5px solid rgba(0, 102, 238, 0.15) !important;
 }
 
 .canvas-capture-container .board:last-of-type {
