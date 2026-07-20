@@ -1,21 +1,19 @@
-// NCCF Roster Web App - Node.js Backend Server
-const http = require('http');
-const fs = require('fs');
-const path = require('path');
+const { createClient } = require('@supabase/supabase-js');
 const crypto = require('crypto');
 
-const PORT = process.env.PORT || 8080;
-const PUBLIC_DIR = __dirname;
-const DATA_DIR = fs.existsSync('/data') ? '/data' : PUBLIC_DIR;
-const DATA_FILE = path.join(DATA_DIR, 'rosters.json');
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
-// SHA-256 hashes for credentials
+let supabase = null;
+if (SUPABASE_URL && SUPABASE_SERVICE_KEY) {
+  supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+}
+
 const HASHES = {
   master: "9d598ba5b4f3fda46daa17f9c0ff96ce72f6c6390a8b0488fcbc2ddd57dcdc0a", // nccfadmin
   prayer_coordinator: "559cbfb727a428db14c17b3a925c201ac283e3800b3e034f55153077d8d56e29" // nccfprayer
 };
 
-// Placeholder Roster Defaults - structured with Day above, Time on far left
 const DEFAULT_ROSTERS = {
   prayer_roster: {
     id: "prayer_roster",
@@ -32,19 +30,14 @@ const DEFAULT_ROSTERS = {
     rows: [
       { day: "Monday", time: "05:30 AM – 06:00 AM", event: "Morning Prayer", person: "Chidera" },
       { day: "Monday", time: "08:30 PM – 09:00 PM", event: "Evening Devotional: Hymns", person: "Mimi" },
-      
       { day: "Tuesday", time: "05:30 AM – 06:00 AM", event: "Morning Prayer", person: "Segun" },
       { day: "Tuesday", time: "06:00 PM – 07:00 PM", event: "Fasting & Prayer Meeting", person: "Ofonime" },
-      
       { day: "Wednesday", time: "05:30 AM – 06:00 AM", event: "Morning Prayer", person: "Christopher" },
       { day: "Wednesday", time: "08:30 PM – 09:00 PM", event: "Theme Exposition", person: "Olayinka" },
-      
       { day: "Thursday", time: "05:30 AM – 06:00 AM", event: "Morning Prayer", person: "Prince" },
       { day: "Thursday", time: "04:30 PM – 06:00 PM", event: "Bible Study", person: "Judith" },
-      
       { day: "Friday", time: "05:30 AM – 06:00 AM", event: "Morning Prayer", person: "Oluchi" },
       { day: "Friday", time: "08:30 PM – 09:30 PM", event: "Discussion Night", person: "Ola" },
-      
       { day: "Saturday", time: "05:30 AM – 06:00 AM", event: "Morning Prayer", person: "Chidera" },
       { day: "Saturday", time: "08:30 PM – 09:00 PM", event: "Praise & Worship", person: "Mimi" }
     ]
@@ -115,24 +108,43 @@ const DEFAULT_ROSTERS = {
   }
 };
 
-const MIME_TYPES = {
-  '.html': 'text/html',
-  '.css': 'text/css',
-  '.js': 'text/javascript',
-  '.json': 'application/json',
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.png': 'image/png',
-  '.gif': 'image/gif',
-  '.svg': 'image/svg+xml',
-};
-
-// Compute SHA-256 Hex Hash
 function sha256(str) {
   return crypto.createHash('sha256').update(str).digest('hex');
 }
 
-// Read body stream from request
+// Read or initialize rosters data
+async function loadRostersData() {
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('rosters_data')
+        .select('data')
+        .eq('id', 1)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+      if (data && data.data) return data.data;
+    } catch (e) {
+      console.error("Failed to connect to Supabase:", e);
+    }
+  }
+  return {}; // Return empty if db fails, shouldn't happen in production
+}
+
+// Save rosters back to Supabase
+async function saveRostersData(rostersData) {
+  if (supabase) {
+    try {
+      const { error } = await supabase
+        .from('rosters_data')
+        .upsert({ id: 1, data: rostersData, updated_at: new Date().toISOString() });
+      if (error) console.warn("Supabase update failed:", error);
+    } catch (e) {
+      console.error("Failed to update Supabase:", e);
+    }
+  }
+}
+
 function getRequestBody(req) {
   return new Promise((resolve, reject) => {
     let body = '';
@@ -142,102 +154,27 @@ function getRequestBody(req) {
   });
 }
 
-const { createClient } = require('@supabase/supabase-js');
+module.exports = async (req, res) => {
+  // CORS Headers for local development if needed
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, x-auth-password, x-action');
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-
-let supabase = null;
-if (SUPABASE_URL && SUPABASE_SERVICE_KEY) {
-  supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-}
-
-// Read or initialize rosters data (Supabase or local file fallback)
-async function loadRostersData() {
-  if (supabase) {
-    try {
-      console.log("Fetching rosters from Supabase cloud database...");
-      const { data, error } = await supabase
-        .from('rosters_data')
-        .select('data')
-        .eq('id', 1)
-        .single();
-
-      if (error && error.code !== 'PGRST116') { // Ignore "no rows returned" error
-        throw error;
-      }
-      
-      if (data && data.data) {
-        return data.data;
-      }
-      console.warn("Supabase returned empty data, falling back to local file.");
-    } catch (e) {
-      console.error("Failed to connect to Supabase:", e);
-    }
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
   }
 
-  // Local File Fallback
-  if (fs.existsSync(DATA_FILE)) {
-    try {
-      const content = fs.readFileSync(DATA_FILE, 'utf-8');
-      return JSON.parse(content);
-    } catch (e) {
-      console.error("Error reading rosters.json fallback, resetting to defaults...", e);
-    }
-  }
-  
-  // Write default config to local file
-  const initialData = {
-    rosters: DEFAULT_ROSTERS,
-    lastUpdated: new Date().toISOString()
-  };
-  try {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(initialData, null, 2), 'utf-8');
-  } catch (err) {}
-  return initialData;
-}
-
-// Save rosters back to file and Supabase
-async function saveRostersData(rostersData) {
-  if (supabase) {
-    try {
-      console.log("Updating rosters on Supabase cloud database...");
-      const { error } = await supabase
-        .from('rosters_data')
-        .upsert({ id: 1, data: rostersData, updated_at: new Date().toISOString() });
-        
-      if (!error) {
-        console.log("Supabase update succeeded!");
-      } else {
-        console.warn("Supabase update failed:", error);
-      }
-    } catch (e) {
-      console.error("Failed to update Supabase:", e);
-    }
-  }
-
-  // Always write locally too as redundancy/backup
-  try {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(rostersData, null, 2), 'utf-8');
-  } catch (err) {
-    console.error("Failed to write fallback rosters.json file:", err);
-  }
-}
-
-// HTTP Server Listener
-const server = http.createServer(async (req, res) => {
-  const urlObj = new URL(req.url, `http://${req.headers.host}`);
-  const pathname = urlObj.pathname;
-
-  // API ROUTE: GET /api/rosters
-  if (pathname === '/api/rosters' && req.method === 'GET') {
+  // GET: Fetch Rosters
+  if (req.method === 'GET') {
     const data = await loadRostersData();
-    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' });
-    return res.end(JSON.stringify(data));
+    res.status(200).json(data);
+    return;
   }
 
-  // API ROUTE: POST /api/rosters (Save Edits)
-  if (pathname === '/api/rosters' && req.method === 'POST') {
+  // POST: Save Edits
+  if (req.method === 'POST') {
     try {
       const password = req.headers['x-auth-password'] || '';
       const actionHeader = req.headers['x-action'] || '';
@@ -251,23 +188,20 @@ const server = http.createServer(async (req, res) => {
       }
 
       if (!authLevel) {
-        res.writeHead(401, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ error: "Unauthorized access. Invalid password." }));
+        return res.status(401).json({ error: "Unauthorized access. Invalid password." });
       }
 
       // Check for Reset Action
       if (actionHeader === 'reset') {
         if (authLevel !== 'master') {
-          res.writeHead(403, { 'Content-Type': 'application/json' });
-          return res.end(JSON.stringify({ error: "Forbidden. Only Master Admin can reset schedules." }));
+          return res.status(403).json({ error: "Forbidden. Only Master Admin can reset schedules." });
         }
         const resetData = {
           rosters: DEFAULT_ROSTERS,
           lastUpdated: new Date().toISOString()
         };
         await saveRostersData(resetData);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ success: true, message: "Rosters reset to defaults successfully." }));
+        return res.status(200).json({ success: true, message: "Rosters reset to defaults successfully." });
       }
 
       // Standard Save Action
@@ -275,57 +209,24 @@ const server = http.createServer(async (req, res) => {
       const newPayload = JSON.parse(body);
       
       const fileData = await loadRostersData();
+      let newRosters = fileData.rosters || {};
       
       if (authLevel === 'master') {
-        fileData.rosters = newPayload;
+        newRosters = newPayload;
       } else if (authLevel === 'prayer_coordinator') {
-        fileData.rosters.prayer_roster = newPayload.prayer_roster;
+        newRosters.prayer_roster = newPayload.prayer_roster;
       }
 
+      fileData.rosters = newRosters;
       fileData.lastUpdated = new Date().toISOString();
       await saveRostersData(fileData);
 
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify({ success: true, message: "Roster saved successfully.", authLevel }));
+      return res.status(200).json({ success: true, message: "Roster saved successfully.", authLevel });
     } catch (e) {
       console.error("API Error: ", e);
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify({ error: "Server failed to process your save request." }));
+      return res.status(500).json({ error: "Server failed to process your save request." });
     }
   }
 
-  // STATIC ASSET SERVING
-  let requestPath = decodeURIComponent(pathname);
-  let filePath = path.join(PUBLIC_DIR, requestPath === '/' ? 'index.html' : requestPath);
-  
-  if (!filePath.startsWith(PUBLIC_DIR)) {
-    res.writeHead(403, { 'Content-Type': 'text/plain' });
-    return res.end('Forbidden');
-  }
-
-  const extname = path.extname(filePath);
-  let contentType = MIME_TYPES[extname] || 'application/octet-stream';
-
-  fs.readFile(filePath, (error, content) => {
-    if (error) {
-      if (error.code === 'ENOENT') {
-        res.writeHead(404, { 'Content-Type': 'text/html' });
-        res.end('<h1>404 File Not Found</h1>', 'utf-8');
-      } else {
-        res.writeHead(500, { 'Content-Type': 'text/plain' });
-        res.end(`Internal Server Error: ${error.code}`, 'utf-8');
-      }
-    } else {
-      res.writeHead(200, { 'Content-Type': contentType });
-      res.end(content, 'utf-8');
-    }
-  });
-});
-
-server.listen(PORT, () => {
-  console.log(`====================================================`);
-  console.log(`  NCCF Schedule Roster backend running!`);
-  console.log(`  Access dashboard: http://localhost:${PORT}/`);
-  console.log(`  Edits are saved directly into: rosters.json`);
-  console.log(`====================================================`);
-});
+  res.status(405).json({ error: 'Method not allowed' });
+};
