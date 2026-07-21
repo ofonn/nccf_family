@@ -417,7 +417,7 @@ function enterAutocompleteEdit(td, roster, rowIndex, colKey, listType, directMan
     td.innerHTML = "";
     td.appendChild(input);
     input.focus();
-    input.select();
+    setTimeout(() => input.select(), 10);
 
     const saveInput = () => {
       saveCell(input.value.trim());
@@ -425,7 +425,7 @@ function enterAutocompleteEdit(td, roster, rowIndex, colKey, listType, directMan
 
     input.addEventListener("blur", saveInput);
     input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") saveInput();
+      if (e.key === "Enter") input.blur();
       if (e.key === "Escape") saveCell(originalText);
     });
   };
@@ -466,17 +466,22 @@ function enterAutocompleteEdit(td, roster, rowIndex, colKey, listType, directMan
     popover.style.top = `${rect.top - popoverHeight}px`;
   }
 
+  td.classList.add("dropdown-open");
+
   const closeDropdown = () => {
     if (document.body.contains(popover)) {
       document.body.removeChild(popover);
     }
+    td.classList.remove("dropdown-open");
     document.removeEventListener("click", handleOutsideClick);
   };
 
   const handleOutsideClick = (e) => {
-    if (!popover.contains(e.target) && e.target !== td) {
+    // Treat clicks on the TD itself as outside clicks if it's already open, so it closes!
+    if (!popover.contains(e.target)) {
       closeDropdown();
-      saveCell(originalText);
+      const text = td.textContent;
+      saveCell(text.endsWith("& ") ? text.slice(0, -3) : text);
     }
   };
 
@@ -487,7 +492,12 @@ function enterAutocompleteEdit(td, roster, rowIndex, colKey, listType, directMan
     item.textContent = suggest;
     item.addEventListener("click", (e) => {
       e.stopPropagation();
-      saveCell(suggest);
+      let finalValue = suggest;
+      const currentText = td.textContent;
+      if (currentText.endsWith("& ")) {
+        finalValue = currentText + suggest;
+      }
+      saveCell(finalValue);
       closeDropdown();
     });
     popover.appendChild(item);
@@ -512,9 +522,10 @@ function enterAutocompleteEdit(td, roster, rowIndex, colKey, listType, directMan
     partnerOption.style.color = "var(--accent-color)";
     partnerOption.addEventListener("click", (e) => {
       e.stopPropagation();
-      // Auto-lock: We don't close the dropdown. We append " & " to the originalText and allow them to click another name.
-      td.textContent = (td.textContent === originalText ? originalText : td.textContent) + " & ";
-      // We will leave the popover open so the next click selects the partner
+      // Auto-lock: We don't close the dropdown. We append " & " to the textContent
+      if (!td.textContent.endsWith("& ")) {
+        td.textContent = (td.textContent === originalText ? originalText : td.textContent) + " & ";
+      }
     });
     popover.appendChild(partnerOption);
   }
@@ -542,11 +553,61 @@ function generateTimeOptions() {
 }
 
 // Double Dropdown Time Range Selector implementation (Prevents manual typos)
-function enterTimeRangeEdit(td, roster, rowIndex, colKey) {
+function enterTimeRangeEdit(td, roster, rowIndex, colKey, directManualInput = false) {
   if (td.classList.contains("editing-cell")) return;
 
   const originalText = td.textContent;
   td.classList.add("editing-cell");
+
+  const saveCell = (newValue) => {
+    td.classList.remove("editing-cell");
+    td.classList.remove("dropdown-open");
+    td.innerHTML = newValue;
+
+    const savedRosters = DB.getRosters();
+    const originalValue = savedRosters[roster.id].rows[rowIndex][colKey] || "";
+
+    if (newValue !== originalValue) {
+      roster.rows[rowIndex][colKey] = newValue;
+      td.classList.add("has-unsaved-changes");
+    } else {
+      roster.rows[rowIndex][colKey] = originalValue;
+      td.classList.remove("has-unsaved-changes");
+    }
+
+    checkUnsavedChangesBadge(roster);
+    performClashCheck(); // Re-trigger live clash check
+  };
+
+  if (directManualInput) {
+    const input = document.createElement("input");
+    input.type = "text";
+    input.value = originalText;
+    input.style.width = "100%";
+    input.style.background = "transparent";
+    input.style.border = "1px solid var(--accent-color)";
+    input.style.color = "var(--cream)";
+    input.style.padding = "6px";
+    input.style.borderRadius = "4px";
+
+    td.innerHTML = "";
+    td.appendChild(input);
+    input.focus();
+    setTimeout(() => input.select(), 10);
+
+    const saveInput = () => {
+      saveCell(input.value.trim());
+    };
+
+    input.addEventListener("blur", saveInput);
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") input.blur();
+      if (e.key === "Escape") saveCell(originalText);
+    });
+    return;
+  }
+
+  td.classList.add("dropdown-open");
 
   // Parse current Start / End Times
   // Default fallback if time is unparseable
@@ -613,22 +674,7 @@ function enterTimeRangeEdit(td, roster, rowIndex, colKey) {
 
   const saveTimeCell = () => {
     const finalVal = `${startSelect.value} – ${endSelect.value}`;
-    td.classList.remove("editing-cell");
-    td.textContent = finalVal;
-
-    const savedRosters = DB.getRosters();
-    const originalValue = savedRosters[roster.id].rows[rowIndex][colKey] || "";
-
-    if (finalVal !== originalValue) {
-      roster.rows[rowIndex][colKey] = finalVal;
-      td.classList.add("has-unsaved-changes");
-    } else {
-      roster.rows[rowIndex][colKey] = originalValue;
-      td.classList.remove("has-unsaved-changes");
-    }
-
-    checkUnsavedChangesBadge(roster);
-    performClashCheck(); // Re-trigger live clash check
+    saveCell(finalVal);
   };
 
   checkBtn.addEventListener("click", (e) => {
@@ -638,11 +684,12 @@ function enterTimeRangeEdit(td, roster, rowIndex, colKey) {
 
   // Revert on click outside (blur wrapper simulation)
   document.addEventListener("click", function closeTimeEditor(e) {
-    if (!td.contains(e.target)) {
+    if (!td.contains(e.target) || e.target === td) {
       document.removeEventListener("click", closeTimeEditor);
       // If still editing, revert to original
       if (td.classList.contains("editing-cell")) {
         td.classList.remove("editing-cell");
+        td.classList.remove("dropdown-open");
         td.textContent = originalText;
         checkUnsavedChangesBadge(roster);
       }
@@ -1112,11 +1159,19 @@ function makeDockDraggable(dock, trigger) {
   }
 }
 
-// Bind cell edit events to support click (dropdown) and long-press (manual input)
+// Bind cell edit events to support single-click (dropdown) and double-click (manual input)
 function bindCellEditEvents(td, roster, originalIndex, col, hasEditAccess) {
   if (!hasEditAccess || !col.editable) return;
 
   td.classList.add("editable");
+  
+  // Legacy fix for missing list types
+  if (roster.id === "cleaning_roster" && col.key === "person") col.list = "members";
+  if (roster.id === "cooking_roster") {
+    if (col.key === "person") col.list = "members";
+    if (col.key === "breakfast") col.list = "foods";
+    if (col.key === "dinner") col.list = "foods";
+  }
   
   // Apply visual indicators for unsaved buffer changes
   const savedRosters = DB.getRosters();
@@ -1125,58 +1180,29 @@ function bindCellEditEvents(td, roster, originalIndex, col, hasEditAccess) {
     td.classList.add("has-unsaved-changes");
   }
 
-  let touchTimeout = null;
-  let isLongPress = false;
-  let startX = 0;
-  let startY = 0;
+  let clickTimeout = null;
 
-  td.addEventListener("touchstart", (e) => {
-    isLongPress = false;
-    const touch = e.touches[0];
-    startX = touch.clientX;
-    startY = touch.clientY;
+  td.addEventListener("click", (e) => {
+    if (e.detail === 1) {
+      // Single click
+      clickTimeout = setTimeout(() => {
+        // If dropdown is already open, document 'click' listener handles closing it
+        if (td.classList.contains("dropdown-open") || td.classList.contains("editing-cell")) return;
 
-    touchTimeout = setTimeout(() => {
-      isLongPress = true;
-      if (navigator.vibrate) navigator.vibrate(50);
-      
+        if (col.isTime) {
+          enterTimeRangeEdit(td, roster, originalIndex, col.key, false);
+        } else {
+          enterAutocompleteEdit(td, roster, originalIndex, col.key, col.list, false);
+        }
+      }, 250);
+    } else if (e.detail === 2) {
+      // Double click
+      clearTimeout(clickTimeout);
       if (col.isTime) {
-        enterTimeRangeEdit(td, roster, originalIndex, col.key);
+        enterTimeRangeEdit(td, roster, originalIndex, col.key, true);
       } else {
         enterAutocompleteEdit(td, roster, originalIndex, col.key, col.list, true);
       }
-    }, 600); // 600ms hold time to trigger direct manual text input
-  }, { passive: true });
-
-  td.addEventListener("touchmove", (e) => {
-    if (touchTimeout) {
-      const touch = e.touches[0];
-      if (Math.abs(touch.clientX - startX) > 10 || Math.abs(touch.clientY - startY) > 10) {
-        clearTimeout(touchTimeout);
-        touchTimeout = null;
-      }
-    }
-  }, { passive: true });
-
-  td.addEventListener("touchend", () => {
-    if (touchTimeout) {
-      clearTimeout(touchTimeout);
-      touchTimeout = null;
-    }
-  });
-
-  td.addEventListener("click", (e) => {
-    if (isLongPress) {
-      isLongPress = false;
-      e.preventDefault();
-      e.stopPropagation();
-      return;
-    }
-    
-    if (col.isTime) {
-      enterTimeRangeEdit(td, roster, originalIndex, col.key);
-    } else {
-      enterAutocompleteEdit(td, roster, originalIndex, col.key, col.list, false);
     }
   });
 }

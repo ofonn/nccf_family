@@ -945,8 +945,23 @@ td.editable:hover {
   background: rgba(255, 255, 255, 0.05) !important;
 }
 
+body.editing-active td.editable {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+}
 
+body.theme-bright.editing-active td.editable {
+  background: rgba(0, 102, 238, 0.03);
+  border: 1px dashed rgba(0, 102, 238, 0.3);
+}
 
+body.editing-active td.editable:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+body.theme-bright.editing-active td.editable:hover {
+  background: rgba(0, 102, 238, 0.08) !important;
+}
 td.editing-cell {
   padding: 4px !important;
   background: rgba(0, 0, 0, 0.4) !important;
