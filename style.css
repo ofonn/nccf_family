@@ -1142,6 +1142,39 @@ td.has-unsaved-changes::before {
   margin-top: 24px;
 }
 
+/* Mobile Responsive */
+@media (max-width: 480px) {
+  .container {
+    padding: 16px 8px 60px;
+  }
+
+  .board {
+    padding: 14px 10px;
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table {
+    min-width: 400px;
+  }
+
+  .board-title-row h2 {
+    font-size: 17px;
+  }
+
+  th, td {
+    padding: 10px 8px;
+    font-size: 11.5px;
+  }
+
+  thead th {
+    font-size: 9.5px;
+  }
+}
+
 /* Animations */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
@@ -1165,16 +1198,14 @@ td.has-unsaved-changes::before {
 /* High Resolution Capture Styles (applied dynamically to hidden container) */
 
 .canvas-capture-container {
-  position: fixed;
-  left: 0;
+  position: absolute;
+  left: -9999px;
   top: 0;
   width: 600px;
   padding: 40px;
   border-radius: 0;
   box-sizing: border-box;
-  opacity: 0;
-  pointer-events: none;
-  z-index: -9999;
+  overflow: visible !important;
 }
 
 .canvas-capture-container:not(.theme-bright) {

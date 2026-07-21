@@ -473,11 +473,17 @@ function enterAutocompleteEdit(td, roster, rowIndex, colKey, listType, directMan
       document.body.removeChild(popover);
     }
     td.classList.remove("dropdown-open");
+    td.classList.remove("editing-cell");
     document.removeEventListener("click", handleOutsideClick);
+    if (_activeDropdownCleanup === closeDropdown) {
+      _activeDropdownCleanup = null;
+    }
   };
 
+  // Register this dropdown as the active one so other cells can close it
+  _activeDropdownCleanup = closeDropdown;
+
   const handleOutsideClick = (e) => {
-    // Treat clicks on the TD itself as outside clicks if it's already open, so it closes!
     if (!popover.contains(e.target)) {
       closeDropdown();
       const text = td.textContent;
@@ -522,7 +528,6 @@ function enterAutocompleteEdit(td, roster, rowIndex, colKey, listType, directMan
     partnerOption.style.color = "var(--accent-color)";
     partnerOption.addEventListener("click", (e) => {
       e.stopPropagation();
-      // Auto-lock: We don't close the dropdown. We append " & " to the textContent
       if (!td.textContent.endsWith("& ")) {
         td.textContent = (td.textContent === originalText ? originalText : td.textContent) + " & ";
       }
@@ -530,7 +535,7 @@ function enterAutocompleteEdit(td, roster, rowIndex, colKey, listType, directMan
     popover.appendChild(partnerOption);
   }
 
-  // Register click outside
+  // Register click outside after a tick
   setTimeout(() => {
     document.addEventListener("click", handleOutsideClick);
   }, 10);
@@ -928,28 +933,36 @@ function performClashCheck() {
 function downloadSingleRoster(roster) {
   showToast("Preparing image download...");
 
+  const isBright = document.body.classList.contains("theme-bright");
   const captureContainer = document.createElement("div");
   captureContainer.className = "canvas-capture-container";
   captureContainer.classList.add(`theme-${roster.id.split("_")[0]}`);
-  const isBright = document.body.classList.contains("theme-bright");
   if (isBright) captureContainer.classList.add("theme-bright");
+
+  // Hardcoded theme colors for reliable rendering
+  const bg = isBright ? "#FFFFFF" : "#17131F";
+  const textColor = isBright ? "#0F172A" : "#F1E9DC";
+  const accentColor = isBright ? "#0055DD" : "#E3A94A";
+  const borderColor = isBright ? "rgba(0, 102, 238, 0.12)" : "#3A2F4C";
+  const thBg = isBright ? "#0055DD" : "#E3A94A";
+  const thColor = isBright ? "#FFFFFF" : "#100C15";
   
   let tablesHTML = "";
   if (roster.id === "cleaning_roster" || roster.id === "cooking_roster") {
     tablesHTML = `
-      <div class="table-wrap" style="margin-top: 20px;">
+      <div class="table-wrap" style="margin-top: 20px; background: transparent; border: 1px solid ${borderColor};">
         <table>
           <thead>
             <tr>
-              <th style="width: 25%;">Day</th>
-              ${roster.columns.map(c => `<th>${c.label}</th>`).join("")}
+              <th style="width: 25%; background: ${thBg}; color: ${thColor};">Day</th>
+              ${roster.columns.map(c => `<th style="background: ${thBg}; color: ${thColor};">${c.label}</th>`).join("")}
             </tr>
           </thead>
           <tbody>
             ${roster.rows.map(row => `
               <tr>
-                <td class="day">${row.day}</td>
-                ${roster.columns.map(c => `<td>${row[c.key] || ""}</td>`).join("")}
+                <td class="day" style="color: ${accentColor}; font-weight: 700;">${row.day}</td>
+                ${roster.columns.map(c => `<td style="color: ${textColor};">${row[c.key] || ""}</td>`).join("")}
               </tr>
             `).join("")}
           </tbody>
@@ -968,16 +981,16 @@ function downloadSingleRoster(roster) {
     Object.keys(rowsByDay).forEach(day => {
       tablesHTML += `
         <div class="day-group" style="margin-top: 20px; text-align: left;">
-          <h3 style="font-family: Georgia, serif; font-size: 15px; color: var(--accent-color); margin: 0 0 6px 4px; border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">${day}</h3>
-          <div class="table-wrap">
+          <h3 style="font-family: Georgia, serif; font-size: 15px; color: ${accentColor}; margin: 0 0 6px 4px; border-bottom: 1px solid ${borderColor}; padding-bottom: 4px;">${day}</h3>
+          <div class="table-wrap" style="background: transparent; border: 1px solid ${borderColor};">
             <table>
               <thead>
-                <tr>${roster.columns.map(c => `<th>${c.label}</th>`).join("")}</tr>
+                <tr>${roster.columns.map(c => `<th style="background: ${thBg}; color: ${thColor};">${c.label}</th>`).join("")}</tr>
               </thead>
               <tbody>
                 ${rowsByDay[day].map(row => `
                   <tr>
-                    ${roster.columns.map(c => `<td>${row[c.key] || ""}</td>`).join("")}
+                    ${roster.columns.map(c => `<td style="color: ${textColor};">${row[c.key] || ""}</td>`).join("")}
                   </tr>
                 `).join("")}
               </tbody>
@@ -994,10 +1007,10 @@ function downloadSingleRoster(roster) {
       <h1>NCCF Family House</h1>
       <p>Official Schedule Board</p>
     </div>
-    <div class="board">
+    <div class="board" style="background: ${isBright ? '#FFFFFF' : '#221A2E'}; border: 1px ${isBright ? 'dashed rgba(0,102,238,0.4)' : 'solid #3A2F4C'};">
       <div class="board-title-row">
         <span class="icon">${roster.icon}</span>
-        <h2>${roster.title}</h2>
+        <h2 style="color: ${accentColor};">${roster.title}</h2>
       </div>
       ${tablesHTML}
     </div>
@@ -1008,23 +1021,28 @@ function downloadSingleRoster(roster) {
 
   document.body.appendChild(captureContainer);
 
-  html2canvas(captureContainer, {
-    scale: 2,
-    backgroundColor: isBright ? "#F8F9FA" : "#17131F",
-    useCORS: true,
-    allowTaint: true,
-    logging: false
-  }).then(canvas => {
-    document.body.removeChild(captureContainer);
-    const link = document.createElement("a");
-    link.download = `NCCF_${roster.title.replace(/\s+/g, "_")}.png`;
-    link.href = canvas.toDataURL("image/png");
-    link.click();
-    showToast("Download started!");
-  }).catch(err => {
-    console.error("Canvas export failed", err);
-    document.body.removeChild(captureContainer);
-    showToast("Export failed! Local file security might be blocking canvas render.", true);
+  // Force browser to compute layout before capture
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      html2canvas(captureContainer, {
+        scale: 2,
+        backgroundColor: isBright ? "#F8F9FA" : bg,
+        useCORS: true,
+        allowTaint: true,
+        logging: false
+      }).then(canvas => {
+        document.body.removeChild(captureContainer);
+        const link = document.createElement("a");
+        link.download = `NCCF_${roster.title.replace(/\s+/g, "_")}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+        showToast("Download started!");
+      }).catch(err => {
+        console.error("Canvas export failed", err);
+        document.body.removeChild(captureContainer);
+        showToast("Export failed! Local file security might be blocking canvas render.", true);
+      });
+    });
   });
 }
 
@@ -1159,13 +1177,23 @@ function makeDockDraggable(dock, trigger) {
   }
 }
 
-// Bind cell edit events to support single-click/tap (dropdown) and double-click/tap (manual input)
+// Global tracker: close any previously open dropdown when a new one opens
+let _activeDropdownCleanup = null;
+
+function closeActiveDropdown() {
+  if (_activeDropdownCleanup) {
+    _activeDropdownCleanup();
+    _activeDropdownCleanup = null;
+  }
+}
+
+// Bind cell edit events: single tap/click = dropdown, double tap/click = manual text input
 function bindCellEditEvents(td, roster, originalIndex, col, hasEditAccess) {
   if (!hasEditAccess || !col.editable) return;
 
   td.classList.add("editable");
   
-  // Legacy fix for missing list types
+  // Ensure list types are set for all rosters
   if (roster.id === "cleaning_roster" && col.key === "person") col.list = "members";
   if (roster.id === "cooking_roster") {
     if (col.key === "person") col.list = "members";
@@ -1180,60 +1208,48 @@ function bindCellEditEvents(td, roster, originalIndex, col, hasEditAccess) {
     td.classList.add("has-unsaved-changes");
   }
 
-  let lastTapTime = 0;
-  let singleTapTimer = null;
+  let lastClickTime = 0;
+  let singleClickTimer = null;
 
-  const openDropdown = () => {
-    if (td.classList.contains("dropdown-open") || td.classList.contains("editing-cell")) return;
-    if (col.isTime) {
-      enterTimeRangeEdit(td, roster, originalIndex, col.key, false);
-    } else {
-      enterAutocompleteEdit(td, roster, originalIndex, col.key, col.list, false);
-    }
-  };
-
-  const openManualInput = () => {
-    if (col.isTime) {
-      enterTimeRangeEdit(td, roster, originalIndex, col.key, true);
-    } else {
-      enterAutocompleteEdit(td, roster, originalIndex, col.key, col.list, true);
-    }
-  };
-
-  const handleTap = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
+  td.addEventListener("click", (e) => {
+    // Don't interfere with clicks inside edit inputs or selects
+    if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT" || e.target.tagName === "BUTTON") return;
 
     const now = Date.now();
-    const timeSinceLastTap = now - lastTapTime;
-    lastTapTime = now;
+    const elapsed = now - lastClickTime;
+    lastClickTime = now;
 
-    if (timeSinceLastTap < 400 && timeSinceLastTap > 0) {
-      // Double tap detected
-      clearTimeout(singleTapTimer);
-      singleTapTimer = null;
-      openManualInput();
+    // If dropdown is already open on THIS cell, close it
+    if (td.classList.contains("dropdown-open")) {
+      closeActiveDropdown();
+      return;
+    }
+
+    // If cell is already in editing mode (input/select), don't reopen
+    if (td.classList.contains("editing-cell")) return;
+
+    if (elapsed < 400 && elapsed > 50) {
+      // Double click/tap → manual text input
+      clearTimeout(singleClickTimer);
+      singleClickTimer = null;
+      // Close any open dropdown first
+      closeActiveDropdown();
+      if (col.isTime) {
+        enterTimeRangeEdit(td, roster, originalIndex, col.key, true);
+      } else {
+        enterAutocompleteEdit(td, roster, originalIndex, col.key, col.list, true);
+      }
     } else {
-      // Possible single tap — wait to see if another comes
-      singleTapTimer = setTimeout(() => {
-        openDropdown();
-      }, 300);
+      // Single click/tap → open dropdown after short delay
+      singleClickTimer = setTimeout(() => {
+        // Close any other open dropdown first
+        closeActiveDropdown();
+        if (col.isTime) {
+          enterTimeRangeEdit(td, roster, originalIndex, col.key, false);
+        } else {
+          enterAutocompleteEdit(td, roster, originalIndex, col.key, col.list, false);
+        }
+      }, 280);
     }
-  };
-
-  // Use touchend on mobile (fires faster and more reliably than click)
-  td.addEventListener("touchend", (e) => {
-    // Only handle single-finger taps
-    if (e.changedTouches && e.changedTouches.length === 1) {
-      handleTap(e);
-    }
-  });
-
-  // Desktop click handler
-  td.addEventListener("click", (e) => {
-    // If touch already handled it, skip
-    if (e.sourceCapabilities && e.sourceCapabilities.firesTouchEvents) return;
-    handleTap(e);
   });
 }
-
