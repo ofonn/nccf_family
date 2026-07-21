@@ -1159,7 +1159,7 @@ function makeDockDraggable(dock, trigger) {
   }
 }
 
-// Bind cell edit events to support single-click (dropdown) and double-click (manual input)
+// Bind cell edit events to support single-click/tap (dropdown) and double-click/tap (manual input)
 function bindCellEditEvents(td, roster, originalIndex, col, hasEditAccess) {
   if (!hasEditAccess || !col.editable) return;
 
@@ -1180,30 +1180,60 @@ function bindCellEditEvents(td, roster, originalIndex, col, hasEditAccess) {
     td.classList.add("has-unsaved-changes");
   }
 
-  let clickTimeout = null;
+  let lastTapTime = 0;
+  let singleTapTimer = null;
 
-  td.addEventListener("click", (e) => {
-    if (e.detail === 1) {
-      // Single click
-      clickTimeout = setTimeout(() => {
-        // If dropdown is already open, document 'click' listener handles closing it
-        if (td.classList.contains("dropdown-open") || td.classList.contains("editing-cell")) return;
-
-        if (col.isTime) {
-          enterTimeRangeEdit(td, roster, originalIndex, col.key, false);
-        } else {
-          enterAutocompleteEdit(td, roster, originalIndex, col.key, col.list, false);
-        }
-      }, 250);
-    } else if (e.detail === 2) {
-      // Double click
-      clearTimeout(clickTimeout);
-      if (col.isTime) {
-        enterTimeRangeEdit(td, roster, originalIndex, col.key, true);
-      } else {
-        enterAutocompleteEdit(td, roster, originalIndex, col.key, col.list, true);
-      }
+  const openDropdown = () => {
+    if (td.classList.contains("dropdown-open") || td.classList.contains("editing-cell")) return;
+    if (col.isTime) {
+      enterTimeRangeEdit(td, roster, originalIndex, col.key, false);
+    } else {
+      enterAutocompleteEdit(td, roster, originalIndex, col.key, col.list, false);
     }
+  };
+
+  const openManualInput = () => {
+    if (col.isTime) {
+      enterTimeRangeEdit(td, roster, originalIndex, col.key, true);
+    } else {
+      enterAutocompleteEdit(td, roster, originalIndex, col.key, col.list, true);
+    }
+  };
+
+  const handleTap = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const now = Date.now();
+    const timeSinceLastTap = now - lastTapTime;
+    lastTapTime = now;
+
+    if (timeSinceLastTap < 400 && timeSinceLastTap > 0) {
+      // Double tap detected
+      clearTimeout(singleTapTimer);
+      singleTapTimer = null;
+      openManualInput();
+    } else {
+      // Possible single tap — wait to see if another comes
+      singleTapTimer = setTimeout(() => {
+        openDropdown();
+      }, 300);
+    }
+  };
+
+  // Use touchend on mobile (fires faster and more reliably than click)
+  td.addEventListener("touchend", (e) => {
+    // Only handle single-finger taps
+    if (e.changedTouches && e.changedTouches.length === 1) {
+      handleTap(e);
+    }
+  });
+
+  // Desktop click handler
+  td.addEventListener("click", (e) => {
+    // If touch already handled it, skip
+    if (e.sourceCapabilities && e.sourceCapabilities.firesTouchEvents) return;
+    handleTap(e);
   });
 }
 

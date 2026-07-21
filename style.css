@@ -139,6 +139,17 @@ body.theme-bright .board {
   box-shadow: 0 8px 32px rgba(0, 85, 221, 0.05) !important;
 }
 
+body.theme-bright .table-wrap {
+  background: transparent !important;
+  border: 1px solid rgba(0, 102, 238, 0.12) !important;
+  border-radius: 8px;
+}
+
+body.theme-bright .day-group h3 {
+  color: #0055DD !important;
+  border-bottom-color: rgba(0, 85, 221, 0.15) !important;
+}
+
 body.theme-bright .board-title-row .icon {
   filter: drop-shadow(0 0 4px rgba(0, 85, 221, 0.3));
 }
@@ -1154,13 +1165,16 @@ td.has-unsaved-changes::before {
 /* High Resolution Capture Styles (applied dynamically to hidden container) */
 
 .canvas-capture-container {
-  position: absolute;
-  left: -9999px;
-  top: -9999px;
+  position: fixed;
+  left: 0;
+  top: 0;
   width: 600px;
   padding: 40px;
   border-radius: 0;
   box-sizing: border-box;
+  opacity: 0;
+  pointer-events: none;
+  z-index: -9999;
 }
 
 .canvas-capture-container:not(.theme-bright) {
@@ -1251,11 +1265,29 @@ td.has-unsaved-changes::before {
   color: #0F172A !important;
 }
 
+.canvas-capture-container .table-wrap {
+  background: transparent !important;
+  border: 1px solid rgba(0, 102, 238, 0.12) !important;
+}
+
+.canvas-capture-container:not(.theme-bright) .table-wrap {
+  background: transparent !important;
+  border: 1px solid #3A2F4C !important;
+}
+
 .canvas-capture-container .board h2,
 .canvas-capture-container .board h3,
-.canvas-capture-container .board .day {
+.canvas-capture-container .board .day,
+.canvas-capture-container .day-group h3 {
   color: #0055DD !important;
   font-weight: 800 !important;
+}
+
+.canvas-capture-container:not(.theme-bright) .board h2,
+.canvas-capture-container:not(.theme-bright) .board h3,
+.canvas-capture-container:not(.theme-bright) .board .day,
+.canvas-capture-container:not(.theme-bright) .day-group h3 {
+  color: #E3A94A !important;
 }
 
 .canvas-capture-container .board td {
@@ -1264,18 +1296,35 @@ td.has-unsaved-changes::before {
   font-size: 13px !important;
 }
 
+.canvas-capture-container:not(.theme-bright) .board td {
+  color: #F1E9DC !important;
+}
+
 .canvas-capture-container .board thead th {
   background: #0055DD !important;
   color: #FFFFFF !important;
   font-weight: 800 !important;
 }
 
+.canvas-capture-container:not(.theme-bright) .board thead th {
+  background: #E3A94A !important;
+  color: #100C15 !important;
+}
+
 .canvas-capture-container .board tbody tr:nth-child(even) {
   background: rgba(0, 102, 238, 0.05) !important;
 }
 
+.canvas-capture-container:not(.theme-bright) .board tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+
 .canvas-capture-container .board tbody tr {
   border-bottom: 1.5px solid rgba(0, 102, 238, 0.15) !important;
+}
+
+.canvas-capture-container:not(.theme-bright) .board tbody tr {
+  border-bottom: 1px dashed rgba(227, 169, 74, 0.2) !important;
 }
 
 .canvas-capture-container .board:last-of-type {
