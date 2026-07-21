@@ -135,8 +135,8 @@ body.theme-bright td.editable:hover {
 
 body.theme-bright .board {
   background: #FFFFFF !important;
-  border: 2px solid #0055DD !important; /* Thick contrast border */
-  box-shadow: 0 16px 40px rgba(0, 85, 221, 0.08) !important;
+  border: 1px solid rgba(0, 102, 238, 0.15) !important;
+  box-shadow: 0 8px 32px rgba(0, 85, 221, 0.05) !important;
 }
 
 body.theme-bright .board-title-row .icon {
@@ -1164,34 +1164,36 @@ td.has-unsaved-changes::before {
 }
 
 .canvas-capture-container:not(.theme-bright) {
-  background: var(--bg-gradient) !important;
-  color: var(--cream) !important;
+  background: #17131F !important;
+  color: #F1E9DC !important;
 }
 
 .canvas-capture-container:not(.theme-bright) .board {
-  background: var(--ink-light) !important;
-  border: 1px solid var(--border-color) !important;
-  color: var(--cream) !important;
+  background: #221A2E !important;
+  border: 1px solid #3A2F4C !important;
+  color: #F1E9DC !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
 }
 
 .canvas-capture-container:not(.theme-bright) .board h2,
 .canvas-capture-container:not(.theme-bright) .board h3,
 .canvas-capture-container:not(.theme-bright) .board .day {
-  color: var(--accent-color) !important;
+  color: #E3A94A !important;
 }
 
 .canvas-capture-container:not(.theme-bright) .board td {
-  color: var(--cream) !important;
+  color: #F1E9DC !important;
 }
 
 .canvas-capture-container:not(.theme-bright) .board thead th {
-  background: var(--accent-color) !important;
-  color: var(--ink) !important;
+  background: #E3A94A !important;
+  color: #100C15 !important;
 }
 
 .canvas-capture-container:not(.theme-bright) .canvas-header h1,
 .canvas-capture-container:not(.theme-bright) .canvas-footer {
-  color: var(--cream) !important;
+  color: #F1E9DC !important;
 }
 
 .canvas-capture-container.theme-bright {
@@ -1242,7 +1244,7 @@ td.has-unsaved-changes::before {
 
 .canvas-capture-container .board {
   backdrop-filter: none !important;
-  border: 2px solid #0055DD !important;
+  border: 1px dashed rgba(0, 102, 238, 0.4) !important;
   box-shadow: none !important;
   background: #FFFFFF !important;
   margin-bottom: 30px;

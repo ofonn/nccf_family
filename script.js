@@ -1009,7 +1009,7 @@ function downloadSingleRoster(roster) {
   document.body.appendChild(captureContainer);
 
   html2canvas(captureContainer, {
-    scale: 2.5,
+    scale: 2,
     backgroundColor: isBright ? "#F8F9FA" : "#17131F",
     useCORS: true,
     allowTaint: true,
