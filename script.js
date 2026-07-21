@@ -828,30 +828,18 @@ function performClashCheck() {
         const itemA = items[i];
         const itemB = items[j];
 
-        // Cooking exemption: whoever is praying can be cooking
+        // Cooking restriction: anyone cooking cannot do ANY other thing on that day!
+        // Sunday is already exempted above.
         const isCookingA = itemA.rosterName.toLowerCase().includes("cooking");
         const isCookingB = itemB.rosterName.toLowerCase().includes("cooking");
-        const isPrayerA = itemA.rosterName.toLowerCase().includes("prayer");
-        const isPrayerB = itemB.rosterName.toLowerCase().includes("prayer");
 
-        if ((isCookingA && isPrayerB) || (isCookingB && isPrayerA)) {
-          continue; 
-        }
-
-        // Determine periods (Morning < 12:00, Evening >= 12:00)
-        // Cooking takes up both periods implicitly, but clashes only within the same period
-        const getPeriod = (item) => item.start < 12 * 60 ? "Morning" : "Evening";
-        
         let overlap = false;
-        if (isCookingA && isCookingB) {
-          overlap = true; // Two cooking tasks always clash
-        } else if (isCookingA) {
-          // Cooking clashes with anything else happening in either period (unless exempted above)
-          overlap = true; 
-        } else if (isCookingB) {
+        if (isCookingA || isCookingB) {
+          // If either is cooking, it's an automatic clash because cooking takes the whole day
           overlap = true;
         } else {
           // Normal check: do they happen in the same period?
+          const getPeriod = (item) => item.start < 12 * 60 ? "Morning" : "Evening";
           overlap = getPeriod(itemA) === getPeriod(itemB);
         }
 
