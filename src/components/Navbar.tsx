@@ -6,15 +6,12 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Sun, Moon, Edit, LogOut, Home, Sparkles, BookOpen, Brush, Utensils, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/lib/authContext';
+import { useTheme } from '@/lib/themeContext';
 
-interface NavbarProps {
-  isDark: boolean;
-  onToggleTheme: () => void;
-}
-
-export default function Navbar({ isDark, onToggleTheme }: NavbarProps) {
+export default function Navbar() {
   const pathname = usePathname();
   const { authRole, login, logout } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   
   const [showModal, setShowModal] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
@@ -93,7 +90,7 @@ export default function Navbar({ isDark, onToggleTheme }: NavbarProps) {
           {/* Controls: Theme Toggle & Admin Auth */}
           <div className="flex items-center gap-2">
             <button
-              onClick={onToggleTheme}
+              onClick={toggleTheme}
               className="p-2 rounded-full border border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text-primary)] hover:bg-[var(--nysc-gold-light)] transition-colors"
               title="Toggle Theme Mode"
             >

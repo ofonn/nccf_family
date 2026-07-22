@@ -8,13 +8,14 @@ import { exportRosterPNG } from '@/components/PosterExporter';
 import { RostersMap, RosterColumnKey } from '@/lib/types';
 import { DEFAULT_ROSTERS } from '@/lib/constants';
 import { useAuth } from '@/lib/authContext';
+import { useTheme } from '@/lib/themeContext';
 
 export default function PrayerPage() {
   const { authRole, authPassword } = useAuth();
+  const { isDark } = useTheme();
 
   const [rosters, setRosters] = useState<RostersMap>(DEFAULT_ROSTERS);
   const [savedRosters, setSavedRosters] = useState<RostersMap>(DEFAULT_ROSTERS);
-  const [isDark, setIsDark] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -22,8 +23,6 @@ export default function PrayerPage() {
       if (d?.rosters) { setRosters(d.rosters); setSavedRosters(d.rosters); }
     }).catch(console.error);
   }, []);
-
-  useEffect(() => { document.documentElement.classList.toggle('dark', isDark); }, [isDark]);
 
   const handleCellChange = (_: string, rowIndex: number, colKey: RosterColumnKey, newValue: string) => {
     setRosters(prev => {
@@ -52,7 +51,7 @@ export default function PrayerPage() {
 
   return (
     <div className="min-h-screen flex flex-col pb-28">
-      <Navbar isDark={isDark} onToggleTheme={() => setIsDark(!isDark)} />
+      <Navbar />
       <main className="flex-1 max-w-4xl w-full mx-auto px-3.5 py-5 space-y-5">
         <RosterCard roster={rosters.prayer_roster} hasEditAccess={hasEdit} onCellChange={handleCellChange} savedRows={savedRosters.prayer_roster.rows} />
       </main>

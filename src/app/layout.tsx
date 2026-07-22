@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { AuthProvider } from '@/lib/authContext';
 import { ToastProvider } from '@/lib/toastContext';
+import { ThemeProvider } from '@/lib/themeContext';
 
 export const metadata: Metadata = {
   title: 'NCCF Family House Schedules',
@@ -21,11 +22,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased watermark-bg min-h-screen flex flex-col">
-        <AuthProvider>
-          <ToastProvider>
-            {children}
-          </ToastProvider>
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <ToastProvider>
+              {children}
+            </ToastProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -10,14 +10,15 @@ import { RostersMap, RosterColumnKey } from '@/lib/types';
 import { DEFAULT_ROSTERS } from '@/lib/constants';
 import { performClashCheck } from '@/lib/clashChecker';
 import { useAuth } from '@/lib/authContext';
+import { useTheme } from '@/lib/themeContext';
 import { Loader2 } from 'lucide-react';
 
 export default function HomePage() {
   const { authRole, authPassword } = useAuth();
+  const { isDark } = useTheme();
 
   const [rosters, setRosters] = useState<RostersMap>(DEFAULT_ROSTERS);
   const [savedRosters, setSavedRosters] = useState<RostersMap>(DEFAULT_ROSTERS);
-  const [isDark, setIsDark] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -33,10 +34,6 @@ export default function HomePage() {
       .catch(err => console.error("API load error:", err))
       .finally(() => setIsLoading(false));
   }, []);
-
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', isDark);
-  }, [isDark]);
 
   const handleCellChange = (rosterId: string, rowIndex: number, colKey: RosterColumnKey, newValue: string) => {
     setRosters(prev => {
@@ -108,7 +105,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen flex flex-col pb-28">
-      <Navbar isDark={isDark} onToggleTheme={() => setIsDark(!isDark)} />
+      <Navbar />
 
       <main className="flex-1 w-full max-w-4xl mx-auto px-3.5 py-5 space-y-5">
         {/* Banner Section */}
