@@ -44,16 +44,16 @@ export default function Navbar() {
       <nav className="sticky top-0 z-40 w-full backdrop-blur-md bg-[var(--card-bg)]/90 border-b border-[var(--card-border)] shadow-sm transition-colors">
         <div className="max-w-5xl mx-auto px-3.5 py-2.5 flex items-center justify-between">
           
-          {/* Official High-Res NCCF Logo & Title */}
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-10 h-10 rounded-full overflow-hidden shadow-sm group-hover:scale-105 transition-transform flex items-center justify-center bg-white shrink-0">
+          {/* Natural Unclipped Free NCCF Logo */}
+          <Link href="/" className="flex items-center gap-3 group">
+            <div className="h-10 flex items-center justify-center shrink-0">
               <Image
                 src="/images/images.webp"
                 alt="NCCF Official Logo"
                 width={80}
                 height={80}
                 priority
-                className="object-cover w-full h-full"
+                className="h-10 w-auto object-contain group-hover:scale-105 transition-transform"
               />
             </div>
             <div>
@@ -88,7 +88,7 @@ export default function Navbar() {
             })}
           </div>
 
-          {/* Controls: Theme Toggle & Fixed-Width Auth Slot to Prevent Layout Shifts */}
+          {/* Controls: Theme Toggle & Fixed-Width Auth Slot */}
           <div className="flex items-center gap-2">
             <button
               onClick={toggleTheme}
@@ -143,13 +143,13 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Password Modal Dialog with Eye Toggle */}
+      {/* Password Modal Dialog with Unclipped Free Logo */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
           <div className="w-full max-w-sm bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl p-6 shadow-2xl space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 bg-white shadow-sm">
-                <Image src="/images/images.webp" alt="NCCF Logo" width={80} height={80} priority className="object-cover w-full h-full" />
+              <div className="h-10 flex items-center justify-center shrink-0">
+                <Image src="/images/images.webp" alt="NCCF Logo" width={80} height={80} priority className="h-10 w-auto object-contain" />
               </div>
               <div>
                 <h3 className="text-base font-extrabold text-[var(--nysc-green)] leading-none">

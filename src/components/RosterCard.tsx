@@ -29,7 +29,11 @@ export default function RosterCard({ roster, hasEditAccess, onCellChange, savedR
     const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
       const popoverEl = document.getElementById('roster-portal-popover');
       if (popoverEl && !popoverEl.contains(e.target as Node)) {
-        setActiveDropdown(null);
+        // Only close if not clicking a table cell
+        const target = e.target as HTMLElement;
+        if (!target.closest('td.editable')) {
+          setActiveDropdown(null);
+        }
       }
     };
     document.addEventListener('mousedown', handleOutsideClick);
@@ -41,7 +45,7 @@ export default function RosterCard({ roster, hasEditAccess, onCellChange, savedR
   }, []);
 
   const handleCellClick = (e: React.MouseEvent<HTMLTableCellElement>, rowIndex: number, colKey: RosterColumnKey) => {
-    // STRICT GUARD: If user has no edit permissions for this roster, cell click does nothing!
+    // STRICT GUARD: If user has no edit permissions, cell click does nothing!
     if (!hasEditAccess) return;
 
     const targetTd = e.currentTarget;
@@ -56,16 +60,16 @@ export default function RosterCard({ roster, hasEditAccess, onCellChange, savedR
       setActiveInputCell({ rowIndex, colKey });
       clickTimerRef.current = { lastTime: 0, timer: null };
     } else {
-      // Single tap / click -> Toggle option dropdown
+      // Single tap / click -> Toggle option dropdown (Clicking same cell closes it!)
       const timer = setTimeout(() => {
         setActiveDropdown((prev) => {
           if (prev && prev.rowIndex === rowIndex && prev.colKey === colKey) {
-            return null; // Toggle closed if clicking same cell
+            return null; // Toggles closed if clicking the active cell!
           }
           setActiveInputCell(null);
           return { rowIndex, colKey, rect };
         });
-      }, 200);
+      }, 150);
       clickTimerRef.current = { lastTime: now, timer };
     }
   };
@@ -143,9 +147,9 @@ export default function RosterCard({ roster, hasEditAccess, onCellChange, savedR
       {/* Portal Popover with Backdrop Scrim */}
       {activeDropdown && typeof window !== 'undefined' && createPortal(
         <>
-          {/* Backdrop Scrim */}
+          {/* Backdrop Scrim for Depth */}
           <div
-            className="fixed inset-0 bg-black/20 backdrop-blur-[1px] z-[9998]"
+            className="fixed inset-0 bg-black/25 backdrop-blur-[2px] z-[9998] transition-opacity"
             onClick={() => setActiveDropdown(null)}
           />
 
@@ -321,7 +325,7 @@ function InlineTextInput({ initialValue, onSave, onCancel }: { initialValue: str
   );
 }
 
-// Portal Dropdown Popover floating on top of viewport with scrim
+// Portal Dropdown Popover floating on top of viewport with HIGH-CONTRAST TEXT
 interface PortalDropdownPopoverProps {
   activeCell: ActiveCellRef;
   columns: Roster['columns'];
@@ -370,7 +374,7 @@ function PortalDropdownPopover({ activeCell, columns, currentValue, onSelect, on
         left: `${left}px`,
         width: `${popoverWidth}px`,
       }}
-      className="z-[9999] max-h-60 overflow-y-auto bg-white dark:bg-[#1C2541] border border-black/10 dark:border-white/10 rounded-xl shadow-[0_12px_40px_-8px_rgba(0,0,0,0.35)] p-1.5 text-xs text-[var(--text-primary)] backdrop-blur-xl animate-in fade-in-0 zoom-in-95 duration-150"
+      className="z-[9999] max-h-60 overflow-y-auto bg-white dark:bg-[#1C2541] border border-black/15 dark:border-white/15 rounded-xl shadow-[0_16px_48px_-8px_rgba(0,0,0,0.4)] p-1.5 text-xs backdrop-blur-xl animate-in fade-in-0 zoom-in-95 duration-150"
     >
       {suggestionList.map((item) => (
         <div
@@ -383,23 +387,23 @@ function PortalDropdownPopover({ activeCell, columns, currentValue, onSelect, on
             }
             onSelect(finalVal);
           }}
-          className="px-3 py-2 rounded-lg hover:bg-emerald-500/10 cursor-pointer font-bold flex items-center justify-between transition-colors"
+          className="px-3.5 py-2.5 rounded-lg text-slate-900 dark:text-slate-100 hover:bg-emerald-500/15 cursor-pointer font-bold flex items-center justify-between transition-colors"
         >
           <span>{item}</span>
-          {currentValue.includes(item) && <Check className="w-3.5 h-3.5 text-[var(--nysc-green)] shrink-0" />}
+          {currentValue.includes(item) && <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />}
         </div>
       ))}
 
-      <div className="border-t border-black/10 dark:border-white/10 mt-1 pt-1 space-y-0.5">
+      <div className="border-t border-slate-200 dark:border-slate-700/60 mt-1.5 pt-1.5 space-y-0.5">
         {colDef?.list === 'members' && (
           <div
             onClick={(e) => {
               e.stopPropagation();
               onAppendPartner();
             }}
-            className="px-3 py-2 rounded-lg text-[var(--nysc-gold)] hover:bg-[var(--nysc-gold-light)] cursor-pointer font-black flex items-center gap-1.5 transition-colors"
+            className="px-3.5 py-2.5 rounded-lg text-amber-700 dark:text-amber-400 hover:bg-amber-500/10 cursor-pointer font-black flex items-center gap-1.5 transition-colors"
           >
-            <Plus className="w-3.5 h-3.5 shrink-0" />
+            <Plus className="w-4 h-4 shrink-0" />
             <span>Add Partner (&)</span>
           </div>
         )}
@@ -409,9 +413,9 @@ function PortalDropdownPopover({ activeCell, columns, currentValue, onSelect, on
             e.stopPropagation();
             onSwitchToInput();
           }}
-          className="px-3 py-2 rounded-lg text-[var(--sky-blue)] hover:bg-[var(--sky-blue-light)] cursor-pointer font-black flex items-center gap-1.5 transition-colors"
+          className="px-3.5 py-2.5 rounded-lg text-sky-700 dark:text-sky-400 hover:bg-sky-500/10 cursor-pointer font-black flex items-center gap-1.5 transition-colors"
         >
-          <Edit3 className="w-3.5 h-3.5 shrink-0" />
+          <Edit3 className="w-4 h-4 shrink-0" />
           <span>Write Custom...</span>
         </div>
       </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Save, XCircle, RotateCcw, Download, Sparkles } from 'lucide-react';
+import { Save, XCircle, RotateCcw, Download } from 'lucide-react';
 import ConfirmModal from '@/components/ConfirmModal';
 import { useToast } from '@/lib/toastContext';
 import { useRosters } from '@/lib/rostersContext';
@@ -63,19 +63,11 @@ export default function ControlDock({
   return (
     <>
       <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 transition-all duration-300">
-        <div className="flex items-center gap-2.5 rounded-full bg-white/90 dark:bg-[#1C2541]/90 backdrop-blur-xl px-4 py-2.5 shadow-[0_8px_30px_rgba(0,0,0,0.2)] border border-black/10 dark:border-white/10 text-xs font-bold shrink-0">
+        <div className="flex items-center gap-2 rounded-full bg-white/90 dark:bg-[#1C2541]/90 backdrop-blur-xl px-4 py-2 shadow-[0_8px_30px_rgba(0,0,0,0.2)] border border-black/10 dark:border-white/10 text-xs font-bold shrink-0">
           
-          {/* Status Badge */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--bg-page)] border border-[var(--card-border)]">
-            <Sparkles className="w-3.5 h-3.5 text-[var(--nysc-gold)] animate-pulse shrink-0" />
-            <span className="text-[11px] font-extrabold text-[var(--nysc-green)]">
-              {hasEditAccess ? (unsavedCount > 0 ? `${unsavedCount} Unsaved` : 'Edit Mode') : 'View Mode'}
-            </span>
-          </div>
-
-          {/* Admin Edit Controls (Only Visible when hasEditAccess is true!) */}
+          {/* Admin Edit Controls (Save, Cancel, Reset) */}
           {hasEditAccess && (
-            <div className="flex items-center gap-1.5 border-l border-black/10 dark:border-white/10 pl-2">
+            <div className="flex items-center gap-1.5">
               {/* Save Button */}
               <button
                 onClick={() => setActiveModal('save')}
@@ -113,7 +105,7 @@ export default function ControlDock({
           )}
 
           {/* Export PNG Buttons */}
-          <div className="flex items-center gap-1.5 border-l border-black/10 dark:border-white/10 pl-2">
+          <div className={`flex items-center gap-1.5 ${hasEditAccess ? 'border-l border-black/10 dark:border-white/10 pl-2' : ''}`}>
             <button
               onClick={handleDownloadClick}
               className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-[var(--sky-blue)] text-white text-[11px] font-extrabold shadow-sm hover:opacity-90 active:scale-95 transition-all"
@@ -137,11 +129,11 @@ export default function ControlDock({
         </div>
       </div>
 
-      {/* Non-Technical Friendly Confirmation Modals */}
+      {/* Confirmation Modals with House Members text */}
       <ConfirmModal
         isOpen={activeModal === 'save'}
         title="Publish Roster Changes?"
-        message={`Are you sure you want to save ${unsavedCount} roster change(s)? This will update the official schedule for all fellowship members.`}
+        message={`Are you sure you want to save ${unsavedCount} roster change(s)? This will update the official schedule for all house members.`}
         confirmText="Publish Changes"
         onConfirm={handleConfirmSave}
         onCancel={() => setActiveModal(null)}
