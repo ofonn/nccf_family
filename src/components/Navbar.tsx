@@ -42,21 +42,22 @@ export default function Navbar() {
   return (
     <>
       <nav className="sticky top-0 z-40 w-full backdrop-blur-md bg-[var(--card-bg)]/90 border-b border-[var(--card-border)] shadow-sm transition-colors">
-        <div className="max-w-6xl mx-auto px-4 py-2.5 flex items-center justify-between">
+        <div className="max-w-5xl mx-auto px-3.5 py-2.5 flex items-center justify-between">
           
-          {/* Official NCCF Logo & Title */}
-          <Link href="/" className="flex items-center gap-3 group">
+          {/* Official High-Res NCCF Logo & Title */}
+          <Link href="/" className="flex items-center gap-2.5 group">
             <div className="w-10 h-10 rounded-full overflow-hidden shadow-sm group-hover:scale-105 transition-transform flex items-center justify-center bg-white shrink-0">
               <Image
                 src="/images/images.webp"
                 alt="NCCF Official Logo"
-                width={40}
-                height={40}
+                width={80}
+                height={80}
+                priority
                 className="object-cover w-full h-full"
               />
             </div>
             <div>
-              <h1 className="font-extrabold text-base md:text-lg tracking-tight text-[var(--nysc-green)] leading-none">
+              <h1 className="font-extrabold text-sm sm:text-base md:text-lg tracking-tight text-[var(--nysc-green)] leading-none">
                 NCCF Family House
               </h1>
               <p className="text-[10px] uppercase font-extrabold tracking-widest text-[var(--nysc-gold)] mt-0.5">
@@ -87,7 +88,7 @@ export default function Navbar() {
             })}
           </div>
 
-          {/* Controls: Theme Toggle & Admin Auth */}
+          {/* Controls: Theme Toggle & Fixed-Width Auth Slot to Prevent Layout Shifts */}
           <div className="flex items-center gap-2">
             <button
               onClick={toggleTheme}
@@ -97,24 +98,27 @@ export default function Navbar() {
               {isDark ? <Sun className="w-4 h-4 text-[var(--nysc-gold)]" /> : <Moon className="w-4 h-4 text-[var(--nysc-green)]" />}
             </button>
 
-            {authRole === 'none' ? (
-              <button
-                onClick={() => setShowModal(true)}
-                className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[var(--nysc-green)] text-white text-xs font-extrabold hover:opacity-90 shadow-sm transition-all"
-              >
-                <Edit className="w-3.5 h-3.5" />
-                <span>Edit</span>
-              </button>
-            ) : (
-              <button
-                onClick={logout}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[var(--nysc-gold)] text-[var(--text-primary)] text-xs font-extrabold shadow-sm hover:opacity-90 transition-all"
-                title="Click to Logout"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                <span>Logout</span>
-              </button>
-            )}
+            {/* Fixed-Width Slot */}
+            <div className="min-w-[84px] flex justify-end">
+              {authRole === 'none' ? (
+                <button
+                  onClick={() => setShowModal(true)}
+                  className="w-full flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[var(--nysc-green)] text-white text-xs font-extrabold hover:opacity-90 shadow-sm transition-all"
+                >
+                  <Edit className="w-3.5 h-3.5" />
+                  <span>Edit</span>
+                </button>
+              ) : (
+                <button
+                  onClick={logout}
+                  className="w-full flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[var(--nysc-gold)] text-[var(--text-primary)] text-xs font-extrabold shadow-sm hover:opacity-90 transition-all"
+                  title="Click to Logout"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Logout</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -145,7 +149,7 @@ export default function Navbar() {
           <div className="w-full max-w-sm bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl p-6 shadow-2xl space-y-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 bg-white shadow-sm">
-                <Image src="/images/images.webp" alt="NCCF Logo" width={40} height={40} className="object-cover w-full h-full" />
+                <Image src="/images/images.webp" alt="NCCF Logo" width={80} height={80} priority className="object-cover w-full h-full" />
               </div>
               <div>
                 <h3 className="text-base font-extrabold text-[var(--nysc-green)] leading-none">

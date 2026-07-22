@@ -41,6 +41,7 @@ export default function RosterCard({ roster, hasEditAccess, onCellChange, savedR
   }, []);
 
   const handleCellClick = (e: React.MouseEvent<HTMLTableCellElement>, rowIndex: number, colKey: RosterColumnKey) => {
+    // STRICT GUARD: If user has no edit permissions for this roster, cell click does nothing!
     if (!hasEditAccess) return;
 
     const targetTd = e.currentTarget;
@@ -79,7 +80,7 @@ export default function RosterCard({ roster, hasEditAccess, onCellChange, savedR
   });
 
   return (
-    <div className="w-full bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl p-3.5 sm:p-5 shadow-[var(--shadow-card)] transition-all">
+    <div className="w-full max-w-3xl mx-auto bg-[var(--card-bg)]/90 border border-[var(--card-border)] rounded-2xl p-3.5 sm:p-5 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.08)] dark:shadow-[0_4px_24px_-4px_rgba(0,0,0,0.4)] backdrop-blur-xl transition-all">
       {/* Card Header */}
       <div className="flex items-center justify-between border-b border-[var(--card-border)] pb-3 mb-3.5">
         <div className="flex items-center gap-2.5">
@@ -139,27 +140,36 @@ export default function RosterCard({ roster, hasEditAccess, onCellChange, savedR
         </div>
       )}
 
-      {/* Portal Popover floating over the document body */}
+      {/* Portal Popover with Backdrop Scrim */}
       {activeDropdown && typeof window !== 'undefined' && createPortal(
-        <PortalDropdownPopover
-          activeCell={activeDropdown}
-          columns={roster.columns}
-          currentValue={roster.rows[activeDropdown.rowIndex]?.[activeDropdown.colKey] || ''}
-          onSelect={(newVal) => {
-            onCellChange(roster.id, activeDropdown.rowIndex, activeDropdown.colKey, newVal);
-            setActiveDropdown(null);
-          }}
-          onSwitchToInput={() => {
-            setActiveInputCell({ rowIndex: activeDropdown.rowIndex, colKey: activeDropdown.colKey });
-            setActiveDropdown(null);
-          }}
-          onAppendPartner={() => {
-            const cur = roster.rows[activeDropdown.rowIndex]?.[activeDropdown.colKey] || '';
-            if (!cur.endsWith('& ')) {
-              onCellChange(roster.id, activeDropdown.rowIndex, activeDropdown.colKey, `${cur} & `);
-            }
-          }}
-        />,
+        <>
+          {/* Backdrop Scrim */}
+          <div
+            className="fixed inset-0 bg-black/20 backdrop-blur-[1px] z-[9998]"
+            onClick={() => setActiveDropdown(null)}
+          />
+
+          {/* Portal Popover */}
+          <PortalDropdownPopover
+            activeCell={activeDropdown}
+            columns={roster.columns}
+            currentValue={roster.rows[activeDropdown.rowIndex]?.[activeDropdown.colKey] || ''}
+            onSelect={(newVal) => {
+              onCellChange(roster.id, activeDropdown.rowIndex, activeDropdown.colKey, newVal);
+              setActiveDropdown(null);
+            }}
+            onSwitchToInput={() => {
+              setActiveInputCell({ rowIndex: activeDropdown.rowIndex, colKey: activeDropdown.colKey });
+              setActiveDropdown(null);
+            }}
+            onAppendPartner={() => {
+              const cur = roster.rows[activeDropdown.rowIndex]?.[activeDropdown.colKey] || '';
+              if (!cur.endsWith('& ')) {
+                onCellChange(roster.id, activeDropdown.rowIndex, activeDropdown.colKey, `${cur} & `);
+              }
+            }}
+          />
+        </>,
         document.body
       )}
     </div>
@@ -203,35 +213,35 @@ function RenderTableGroup({
         </h3>
       )}
 
-      {/* Responsive Table Wrap with smooth horizontal scrolling */}
+      {/* Responsive Table Wrap */}
       <div className="w-full overflow-x-auto rounded-xl border border-[var(--card-border)] bg-[var(--card-bg)] shadow-sm">
         <table className="w-full text-left border-collapse min-w-[320px] sm:min-w-[480px]">
           <thead>
             <tr className="bg-[var(--table-header-bg)] text-[var(--table-header-text)] text-[10px] sm:text-xs font-black uppercase tracking-wider">
               {title === 'Weekly Schedule' && (
-                <th className="py-2 px-2.5 sm:px-3 border-b border-[var(--card-border)] whitespace-nowrap">
+                <th className="py-2.5 px-3 border-b border-[var(--card-border)] whitespace-nowrap w-[20%]">
                   Day
                 </th>
               )}
               {columns.map((col) => (
-                <th key={col.key} className="py-2 px-2.5 sm:px-3 border-b border-[var(--card-border)] whitespace-nowrap">
+                <th key={col.key} className="py-2.5 px-3 border-b border-[var(--card-border)] whitespace-nowrap">
                   {col.label}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-[var(--card-border)] text-xs font-semibold">
+          <tbody className="divide-y divide-black/5 dark:divide-white/10 text-xs font-semibold">
             {rowsWithIndices.map(({ row, originalIndex }) => (
               <tr key={originalIndex} className="hover:bg-[var(--table-hover)] transition-colors">
                 {title === 'Weekly Schedule' && (
-                  <td className="py-2.5 px-2.5 sm:px-3 font-extrabold text-[var(--nysc-green)] text-[11px] sm:text-xs whitespace-nowrap">
+                  <td className="py-3 px-3 font-extrabold text-[var(--nysc-green)] text-[11px] sm:text-xs whitespace-nowrap">
                     {row.day}
                   </td>
                 )}
                 {columns.map((col) => {
                   const currentValue = row[col.key] || '';
                   const savedValue = savedRows[originalIndex]?.[col.key] || '';
-                  const hasUnsavedChanges = currentValue.trim() !== savedValue.trim();
+                  const hasUnsavedChanges = hasEditAccess && currentValue.trim() !== savedValue.trim();
 
                   const isInputOpen = activeInputCell?.rowIndex === originalIndex && activeInputCell?.colKey === col.key;
                   const isActiveSelectedCell = activeDropdown?.rowIndex === originalIndex && activeDropdown?.colKey === col.key;
@@ -240,8 +250,12 @@ function RenderTableGroup({
                     <td
                       key={col.key}
                       onClick={(e) => onCellClick(e, originalIndex, col.key)}
-                      className={`relative py-2.5 px-2.5 sm:px-3 transition-all ${
-                        hasEditAccess && col.editable ? 'editable cursor-pointer' : ''
+                      className={`relative py-3 px-3 transition-all ${
+                        col.isTime ? 'whitespace-nowrap text-xs font-semibold tracking-tight text-[var(--text-muted)]' : ''
+                      } ${
+                        hasEditAccess && col.editable
+                          ? 'editable cursor-pointer hover:bg-emerald-500/10 active:scale-[0.99]'
+                          : ''
                       } ${isActiveSelectedCell ? 'ring-2 ring-[var(--nysc-green)] bg-[var(--nysc-gold-light)]' : ''}`}
                     >
                       {isInputOpen ? (
@@ -258,7 +272,7 @@ function RenderTableGroup({
                           <span
                             className={
                               col.key === 'person' || col.key === 'breakfast' || col.key === 'dinner'
-                                ? 'inline-block bg-[var(--sky-blue-light)] text-[var(--sky-blue)] px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-extrabold break-words'
+                                ? 'inline-flex items-center rounded-full bg-emerald-600/10 dark:bg-emerald-400/10 px-2.5 py-0.5 text-xs font-bold text-emerald-800 dark:text-emerald-300 ring-1 ring-emerald-600/20 dark:ring-emerald-400/20'
                                 : 'text-[11px] sm:text-xs text-[var(--text-primary)]'
                             }
                           >
@@ -307,7 +321,7 @@ function InlineTextInput({ initialValue, onSave, onCancel }: { initialValue: str
   );
 }
 
-// Portal Dropdown Popover floating on top of viewport
+// Portal Dropdown Popover floating on top of viewport with scrim
 interface PortalDropdownPopoverProps {
   activeCell: ActiveCellRef;
   columns: Roster['columns'];
@@ -341,7 +355,6 @@ function PortalDropdownPopover({ activeCell, columns, currentValue, onSelect, on
 
   const suggestionList = Array.from(suggestions);
 
-  // Position logic (place below cell, fallback above if near screen bottom)
   const rect = activeCell.rect;
   const popoverWidth = Math.max(220, rect.width);
   let top = rect.bottom + window.scrollY + 4;
@@ -357,7 +370,7 @@ function PortalDropdownPopover({ activeCell, columns, currentValue, onSelect, on
         left: `${left}px`,
         width: `${popoverWidth}px`,
       }}
-      className="z-[9999] max-h-60 overflow-y-auto bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl shadow-2xl p-1.5 text-xs text-[var(--text-primary)] backdrop-blur-xl animate-fade-in"
+      className="z-[9999] max-h-60 overflow-y-auto bg-white dark:bg-[#1C2541] border border-black/10 dark:border-white/10 rounded-xl shadow-[0_12px_40px_-8px_rgba(0,0,0,0.35)] p-1.5 text-xs text-[var(--text-primary)] backdrop-blur-xl animate-in fade-in-0 zoom-in-95 duration-150"
     >
       {suggestionList.map((item) => (
         <div
@@ -370,21 +383,21 @@ function PortalDropdownPopover({ activeCell, columns, currentValue, onSelect, on
             }
             onSelect(finalVal);
           }}
-          className="px-3 py-2 rounded-xl hover:bg-[var(--table-hover)] cursor-pointer font-bold flex items-center justify-between transition-colors"
+          className="px-3 py-2 rounded-lg hover:bg-emerald-500/10 cursor-pointer font-bold flex items-center justify-between transition-colors"
         >
           <span>{item}</span>
           {currentValue.includes(item) && <Check className="w-3.5 h-3.5 text-[var(--nysc-green)] shrink-0" />}
         </div>
       ))}
 
-      <div className="border-t border-[var(--card-border)] mt-1 pt-1 space-y-0.5">
+      <div className="border-t border-black/10 dark:border-white/10 mt-1 pt-1 space-y-0.5">
         {colDef?.list === 'members' && (
           <div
             onClick={(e) => {
               e.stopPropagation();
               onAppendPartner();
             }}
-            className="px-3 py-2 rounded-xl text-[var(--nysc-gold)] hover:bg-[var(--nysc-gold-light)] cursor-pointer font-black flex items-center gap-1.5 transition-colors"
+            className="px-3 py-2 rounded-lg text-[var(--nysc-gold)] hover:bg-[var(--nysc-gold-light)] cursor-pointer font-black flex items-center gap-1.5 transition-colors"
           >
             <Plus className="w-3.5 h-3.5 shrink-0" />
             <span>Add Partner (&)</span>
@@ -396,7 +409,7 @@ function PortalDropdownPopover({ activeCell, columns, currentValue, onSelect, on
             e.stopPropagation();
             onSwitchToInput();
           }}
-          className="px-3 py-2 rounded-xl text-[var(--sky-blue)] hover:bg-[var(--sky-blue-light)] cursor-pointer font-black flex items-center gap-1.5 transition-colors"
+          className="px-3 py-2 rounded-lg text-[var(--sky-blue)] hover:bg-[var(--sky-blue-light)] cursor-pointer font-black flex items-center gap-1.5 transition-colors"
         >
           <Edit3 className="w-3.5 h-3.5 shrink-0" />
           <span>Write Custom...</span>

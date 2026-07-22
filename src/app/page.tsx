@@ -1,98 +1,22 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Navbar from '@/components/Navbar';
 import RosterCard from '@/components/RosterCard';
 import ClashCheckerAlert from '@/components/ClashCheckerAlert';
 import ControlDock from '@/components/ControlDock';
 import { exportRosterPNG, exportAllRostersPNG } from '@/components/PosterExporter';
-import { RostersMap, RosterColumnKey } from '@/lib/types';
-import { DEFAULT_ROSTERS } from '@/lib/constants';
+import { RostersMap } from '@/lib/types';
 import { performClashCheck } from '@/lib/clashChecker';
 import { useAuth } from '@/lib/authContext';
 import { useTheme } from '@/lib/themeContext';
+import { useRosters } from '@/lib/rostersContext';
 import { Loader2 } from 'lucide-react';
 
 export default function HomePage() {
-  const { authRole, authPassword } = useAuth();
+  const { authRole } = useAuth();
   const { isDark } = useTheme();
-
-  const [rosters, setRosters] = useState<RostersMap>(DEFAULT_ROSTERS);
-  const [savedRosters, setSavedRosters] = useState<RostersMap>(DEFAULT_ROSTERS);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    fetch('/api/rosters')
-      .then(res => res.json())
-      .then(data => {
-        if (data?.rosters) {
-          setRosters(data.rosters);
-          setSavedRosters(data.rosters);
-        }
-      })
-      .catch(err => console.error("API load error:", err))
-      .finally(() => setIsLoading(false));
-  }, []);
-
-  const handleCellChange = (rosterId: string, rowIndex: number, colKey: RosterColumnKey, newValue: string) => {
-    setRosters(prev => {
-      const updated = JSON.parse(JSON.stringify(prev)) as RostersMap;
-      const key = rosterId as keyof RostersMap;
-      if (updated[key]?.rows[rowIndex]) {
-        updated[key].rows[rowIndex][colKey] = newValue;
-      }
-      return updated;
-    });
-  };
-
-  const handleSave = async () => {
-    if (!authPassword) return;
-    setIsSaving(true);
-    try {
-      const res = await fetch('/api/rosters', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-auth-password': authPassword },
-        body: JSON.stringify(rosters),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setSavedRosters(JSON.parse(JSON.stringify(rosters)));
-      } else {
-        alert(data.error || 'Failed to save');
-      }
-    } catch (e) {
-      console.error(e);
-      alert('Save request failed');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleCancel = () => setRosters(JSON.parse(JSON.stringify(savedRosters)));
-
-  const handleReset = async () => {
-    if (authRole !== 'master') return alert('Only Master Admin can reset.');
-    try {
-      const res = await fetch('/api/rosters', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-auth-password': authPassword, 'x-action': 'reset' },
-      });
-      if (res.ok) {
-        setRosters(DEFAULT_ROSTERS);
-        setSavedRosters(DEFAULT_ROSTERS);
-      }
-    } catch (e) { console.error(e); }
-  };
-
-  let unsavedCount = 0;
-  (Object.keys(rosters) as (keyof RostersMap)[]).forEach(rId => {
-    rosters[rId].rows.forEach((r, idx) => {
-      Object.keys(r).forEach(col => {
-        if (col !== 'day' && r[col] !== savedRosters[rId]?.rows[idx]?.[col]) unsavedCount++;
-      });
-    });
-  });
+  const { rosters, savedRosters, isLoading, handleCellChange } = useRosters();
 
   const clashes = performClashCheck(rosters);
 
@@ -148,13 +72,8 @@ export default function HomePage() {
 
       <ControlDock
         hasEditAccess={authRole !== 'none'}
-        unsavedCount={unsavedCount}
-        onSave={handleSave}
-        onCancel={handleCancel}
-        onReset={handleReset}
         onDownload={() => exportRosterPNG(rosters.prayer_roster, isDark)}
         onDownloadAll={() => exportAllRostersPNG(rosters, isDark)}
-        isSaving={isSaving}
       />
     </div>
   );
