@@ -48,7 +48,7 @@ export default function ServicePage() {
     Object.keys(r).forEach(col => { if (col !== 'day' && r[col] !== savedRosters.glorious_service.rows[idx]?.[col]) unsavedCount++; });
   });
 
-  const hasEdit = authRole === 'master';
+  const hasEdit = authRole === 'master' || authRole === 'prayer_coordinator';
 
   return (
     <div className="min-h-screen flex flex-col pb-28">

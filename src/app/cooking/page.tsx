@@ -58,7 +58,7 @@ export default function CookingPage() {
     });
   });
 
-  const hasEdit = authRole === 'master';
+  const hasEdit = authRole === 'master' || authRole === 'prayer_coordinator';
 
   return (
     <div className="min-h-screen flex flex-col pb-28">

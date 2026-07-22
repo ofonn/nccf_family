@@ -12,6 +12,7 @@ interface ControlDockProps {
   onCancel: () => void;
   onReset: () => Promise<void> | void;
   onDownload: () => void;
+  onDownloadAll?: () => void;
   isSaving: boolean;
 }
 
@@ -22,6 +23,7 @@ export default function ControlDock({
   onCancel,
   onReset,
   onDownload,
+  onDownloadAll,
   isSaving,
 }: ControlDockProps) {
   const { showToast } = useToast();
@@ -49,6 +51,13 @@ export default function ControlDock({
   const handleDownloadClick = () => {
     onDownload();
     showToast('Preparing official PNG poster download...', 'info');
+  };
+
+  const handleDownloadAllClick = () => {
+    if (onDownloadAll) {
+      onDownloadAll();
+      showToast('Preparing master all-rosters PNG download...', 'info');
+    }
   };
 
   return (
@@ -110,14 +119,28 @@ export default function ControlDock({
             </>
           )}
 
-          {/* Export PNG Button */}
-          <button
-            onClick={handleDownloadClick}
-            className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl bg-[var(--sky-blue)] text-white text-xs font-extrabold shadow-md hover:opacity-90 active:scale-95 transition-all"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>Export PNG</span>
-          </button>
+          {/* Export PNG Buttons */}
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={handleDownloadClick}
+              className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl bg-[var(--sky-blue)] text-white text-xs font-extrabold shadow-md hover:opacity-90 active:scale-95 transition-all"
+              title="Export Current Roster"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Export PNG</span>
+            </button>
+
+            {onDownloadAll && (
+              <button
+                onClick={handleDownloadAllClick}
+                className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl bg-[var(--nysc-green)] text-white text-xs font-extrabold shadow-md hover:opacity-90 active:scale-95 transition-all"
+                title="Export All Schedules into One Long Master Image"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Export All</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

@@ -125,7 +125,10 @@ export async function POST(req: NextRequest) {
     if (authLevel === 'master') {
       newRosters = newPayload;
     } else if (authLevel === 'prayer_coordinator') {
-      newRosters.prayer_roster = newPayload.prayer_roster;
+      newRosters.prayer_roster = newPayload.prayer_roster || newRosters.prayer_roster;
+      newRosters.glorious_service = newPayload.glorious_service || newRosters.glorious_service;
+      newRosters.cooking_roster = newPayload.cooking_roster || newRosters.cooking_roster;
+      // cleaning_roster is excluded from prayer_coordinator access
     }
 
     const fileData = { rosters: newRosters, lastUpdated: new Date().toISOString() };

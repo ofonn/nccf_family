@@ -115,7 +115,7 @@ export default function Navbar({ isDark, onToggleTheme }: NavbarProps) {
                 title="Click to Logout"
               >
                 <LogOut className="w-3.5 h-3.5" />
-                <span>Logout ({authRole === 'master' ? 'Master' : 'Prayer'})</span>
+                <span>Logout</span>
               </button>
             )}
           </div>

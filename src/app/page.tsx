@@ -5,7 +5,7 @@ import Navbar from '@/components/Navbar';
 import RosterCard from '@/components/RosterCard';
 import ClashCheckerAlert from '@/components/ClashCheckerAlert';
 import ControlDock from '@/components/ControlDock';
-import { exportRosterPNG } from '@/components/PosterExporter';
+import { exportRosterPNG, exportAllRostersPNG } from '@/components/PosterExporter';
 import { RostersMap, RosterColumnKey } from '@/lib/types';
 import { DEFAULT_ROSTERS } from '@/lib/constants';
 import { performClashCheck } from '@/lib/clashChecker';
@@ -99,9 +99,9 @@ export default function HomePage() {
 
   const rosterEntries: { key: keyof RostersMap; editCheck: boolean }[] = [
     { key: 'prayer_roster', editCheck: authRole === 'master' || authRole === 'prayer_coordinator' },
-    { key: 'glorious_service', editCheck: authRole === 'master' },
+    { key: 'glorious_service', editCheck: authRole === 'master' || authRole === 'prayer_coordinator' },
     { key: 'cleaning_roster', editCheck: authRole === 'master' },
-    { key: 'cooking_roster', editCheck: authRole === 'master' },
+    { key: 'cooking_roster', editCheck: authRole === 'master' || authRole === 'prayer_coordinator' },
   ];
 
   return (
@@ -146,6 +146,7 @@ export default function HomePage() {
         onCancel={handleCancel}
         onReset={handleReset}
         onDownload={() => exportRosterPNG(rosters.prayer_roster, isDark)}
+        onDownloadAll={() => exportAllRostersPNG(rosters, isDark)}
         isSaving={isSaving}
       />
     </div>
