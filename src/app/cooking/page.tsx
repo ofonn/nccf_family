@@ -5,17 +5,15 @@ import Navbar from '@/components/Navbar';
 import RosterCard from '@/components/RosterCard';
 import ControlDock from '@/components/ControlDock';
 import { exportRosterPNG } from '@/components/PosterExporter';
-import { RostersMap, AuthRole, RosterColumnKey } from '@/lib/types';
+import { RostersMap, RosterColumnKey } from '@/lib/types';
 import { DEFAULT_ROSTERS } from '@/lib/constants';
-import { sha256 } from '@/lib/auth';
-
-const HASHES = { master: "9d598ba5b4f3fda46daa17f9c0ff96ce72f6c6390a8b0488fcbc2ddd57dcdc0a" };
+import { useAuth } from '@/lib/authContext';
 
 export default function CookingPage() {
+  const { authRole, authPassword } = useAuth();
+
   const [rosters, setRosters] = useState<RostersMap>(DEFAULT_ROSTERS);
   const [savedRosters, setSavedRosters] = useState<RostersMap>(DEFAULT_ROSTERS);
-  const [authRole, setAuthRole] = useState<AuthRole>('none');
-  const [authPassword, setAuthPassword] = useState<string>('');
   const [isDark, setIsDark] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -30,16 +28,6 @@ export default function CookingPage() {
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDark);
   }, [isDark]);
-
-  const handleLogin = async (password: string) => {
-    const hash = await sha256(password);
-    if (hash === HASHES.master) {
-      setAuthRole('master'); setAuthPassword(password);
-      document.body.classList.add('editing-active');
-      return true;
-    }
-    return false;
-  };
 
   const handleCellChange = (_: string, rowIndex: number, colKey: RosterColumnKey, newValue: string) => {
     setRosters(prev => {
@@ -70,13 +58,15 @@ export default function CookingPage() {
     });
   });
 
+  const hasEdit = authRole === 'master';
+
   return (
-    <div className="min-h-screen flex flex-col pb-24">
-      <Navbar authRole={authRole} onLogin={handleLogin} onLogout={() => { setAuthRole('none'); document.body.classList.remove('editing-active'); }} isDark={isDark} onToggleTheme={() => setIsDark(!isDark)} />
-      <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-6 space-y-6">
-        <RosterCard roster={rosters.cooking_roster} hasEditAccess={authRole === 'master'} onCellChange={handleCellChange} savedRows={savedRosters.cooking_roster.rows} />
+    <div className="min-h-screen flex flex-col pb-28">
+      <Navbar isDark={isDark} onToggleTheme={() => setIsDark(!isDark)} />
+      <main className="flex-1 max-w-4xl w-full mx-auto px-3.5 py-5 space-y-5">
+        <RosterCard roster={rosters.cooking_roster} hasEditAccess={hasEdit} onCellChange={handleCellChange} savedRows={savedRosters.cooking_roster.rows} />
       </main>
-      <ControlDock hasEditAccess={authRole === 'master'} unsavedCount={unsavedCount} onSave={handleSave} onCancel={() => setRosters(JSON.parse(JSON.stringify(savedRosters)))} onReset={() => {}} onDownload={() => exportRosterPNG(rosters.cooking_roster, isDark)} isSaving={isSaving} />
+      <ControlDock hasEditAccess={hasEdit} unsavedCount={unsavedCount} onSave={handleSave} onCancel={() => setRosters(JSON.parse(JSON.stringify(savedRosters)))} onReset={() => {}} onDownload={() => exportRosterPNG(rosters.cooking_roster, isDark)} isSaving={isSaving} />
     </div>
   );
 }

@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Roster, RosterRow, RosterColumnKey } from '@/lib/types';
 import { PREDEFINED_SUGGESTIONS } from '@/lib/constants';
-import { Check, Edit3, Plus, Sparkles } from 'lucide-react';
+import { Check, Edit3, Plus } from 'lucide-react';
 
 interface RosterCardProps {
   roster: Roster;
@@ -12,54 +13,62 @@ interface RosterCardProps {
   savedRows: RosterRow[];
 }
 
+interface ActiveCellRef {
+  rowIndex: number;
+  colKey: RosterColumnKey;
+  rect: DOMRect;
+}
+
 export default function RosterCard({ roster, hasEditAccess, onCellChange, savedRows }: RosterCardProps) {
-  // Global active dropdown state: tracks which cell index & colKey is open
-  const [activeDropdown, setActiveDropdown] = useState<{ rowIndex: number; colKey: RosterColumnKey } | null>(null);
+  const [activeDropdown, setActiveDropdown] = useState<ActiveCellRef | null>(null);
   const [activeInputCell, setActiveInputCell] = useState<{ rowIndex: number; colKey: RosterColumnKey } | null>(null);
-  const [clickTimer, setClickTimer] = useState<{ timer: NodeJS.Timeout | null; lastTime: number }>({ timer: null, lastTime: 0 });
+  const clickTimerRef = useRef<{ lastTime: number; timer: NodeJS.Timeout | null }>({ lastTime: 0, timer: null });
 
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  // Close dropdown on click outside
+  // Close active dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+    const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
+      const popoverEl = document.getElementById('roster-portal-popover');
+      if (popoverEl && !popoverEl.contains(e.target as Node)) {
         setActiveDropdown(null);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('touchstart', handleOutsideClick);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('touchstart', handleOutsideClick);
+    };
   }, []);
 
-  const handleCellClick = (rowIndex: number, colKey: RosterColumnKey, isTime?: boolean) => {
+  const handleCellClick = (e: React.MouseEvent<HTMLTableCellElement>, rowIndex: number, colKey: RosterColumnKey) => {
     if (!hasEditAccess) return;
 
+    const targetTd = e.currentTarget;
+    const rect = targetTd.getBoundingClientRect();
     const now = Date.now();
-    const timeDiff = now - clickTimer.lastTime;
+    const timeDiff = now - clickTimerRef.current.lastTime;
 
-    // Double tap / double click detection (< 400ms)
-    if (timeDiff < 400 && timeDiff > 50) {
-      if (clickTimer.timer) clearTimeout(clickTimer.timer);
+    // Double tap / click (< 350ms) -> Direct typing mode
+    if (timeDiff < 350 && timeDiff > 40) {
+      if (clickTimerRef.current.timer) clearTimeout(clickTimerRef.current.timer);
       setActiveDropdown(null);
       setActiveInputCell({ rowIndex, colKey });
-      setClickTimer({ timer: null, lastTime: 0 });
+      clickTimerRef.current = { lastTime: 0, timer: null };
     } else {
-      // Single tap / single click: toggle popover after short wait
+      // Single tap / click -> Toggle option dropdown
       const timer = setTimeout(() => {
-        if (activeDropdown && activeDropdown.rowIndex === rowIndex && activeDropdown.colKey === colKey) {
-          // Toggle off if clicking same cell again!
-          setActiveDropdown(null);
-        } else {
-          // Auto-close any previous popover and open this one!
+        setActiveDropdown((prev) => {
+          if (prev && prev.rowIndex === rowIndex && prev.colKey === colKey) {
+            return null; // Toggle closed if clicking same cell
+          }
           setActiveInputCell(null);
-          setActiveDropdown({ rowIndex, colKey });
-        }
-      }, 250);
-      setClickTimer({ timer, lastTime: now });
+          return { rowIndex, colKey, rect };
+        });
+      }, 200);
+      clickTimerRef.current = { lastTime: now, timer };
     }
   };
 
-  // Group rows by Day if prayer or service roster
   const isGroupedByDay = roster.id === 'prayer_roster' || roster.id === 'glorious_service';
   const rowsByDay: Record<string, { row: RosterRow; originalIndex: number }[]> = {};
 
@@ -70,23 +79,23 @@ export default function RosterCard({ roster, hasEditAccess, onCellChange, savedR
   });
 
   return (
-    <div ref={containerRef} className="w-full bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl p-4 md:p-6 shadow-[var(--shadow-card)] transition-all">
+    <div className="w-full bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl p-3.5 sm:p-5 shadow-[var(--shadow-card)] transition-all">
       {/* Card Header */}
-      <div className="flex items-center justify-between border-b border-[var(--card-border)] pb-4 mb-4">
-        <div className="flex items-center gap-3">
-          <span className="text-2xl">{roster.icon}</span>
+      <div className="flex items-center justify-between border-b border-[var(--card-border)] pb-3 mb-3.5">
+        <div className="flex items-center gap-2.5">
+          <span className="text-xl sm:text-2xl">{roster.icon}</span>
           <div>
-            <h2 className="text-lg md:text-xl font-extrabold text-[var(--nysc-green)] tracking-tight">
+            <h2 className="text-base sm:text-lg font-black text-[var(--nysc-green)] tracking-tight">
               {roster.title}
             </h2>
-            <p className="text-xs text-[var(--text-muted)] font-medium">
+            <p className="text-[11px] text-[var(--text-muted)] font-medium">
               {hasEditAccess ? '⚡ Unlocked for Live Editing' : '🔒 View Mode'}
             </p>
           </div>
         </div>
 
         {hasEditAccess && (
-          <span className="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full bg-[var(--nysc-gold-light)] text-[var(--nysc-gold)] border border-[var(--nysc-gold)]/30">
+          <span className="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full bg-[var(--nysc-gold-light)] text-[var(--nysc-gold)] border border-[var(--nysc-gold)]/30 shrink-0">
             Edit Mode
           </span>
         )}
@@ -94,7 +103,6 @@ export default function RosterCard({ roster, hasEditAccess, onCellChange, savedR
 
       {/* Roster Layout Rendering */}
       {!isGroupedByDay ? (
-        // Single Tabular Layout (Cleaning / Cooking)
         <RenderTableGroup
           title="Weekly Schedule"
           columns={roster.columns}
@@ -110,8 +118,7 @@ export default function RosterCard({ roster, hasEditAccess, onCellChange, savedR
           roster={roster}
         />
       ) : (
-        // Day-Grouped Component Tables (Prayer / Service)
-        <div className="space-y-6">
+        <div className="space-y-4">
           {Object.keys(rowsByDay).map((day) => (
             <RenderTableGroup
               key={day}
@@ -131,22 +138,45 @@ export default function RosterCard({ roster, hasEditAccess, onCellChange, savedR
           ))}
         </div>
       )}
+
+      {/* Portal Popover floating over the document body */}
+      {activeDropdown && typeof window !== 'undefined' && createPortal(
+        <PortalDropdownPopover
+          activeCell={activeDropdown}
+          columns={roster.columns}
+          currentValue={roster.rows[activeDropdown.rowIndex]?.[activeDropdown.colKey] || ''}
+          onSelect={(newVal) => {
+            onCellChange(roster.id, activeDropdown.rowIndex, activeDropdown.colKey, newVal);
+            setActiveDropdown(null);
+          }}
+          onSwitchToInput={() => {
+            setActiveInputCell({ rowIndex: activeDropdown.rowIndex, colKey: activeDropdown.colKey });
+            setActiveDropdown(null);
+          }}
+          onAppendPartner={() => {
+            const cur = roster.rows[activeDropdown.rowIndex]?.[activeDropdown.colKey] || '';
+            if (!cur.endsWith('& ')) {
+              onCellChange(roster.id, activeDropdown.rowIndex, activeDropdown.colKey, `${cur} & `);
+            }
+          }}
+        />,
+        document.body
+      )}
     </div>
   );
 }
 
-// Sub-component: Renders a single tabular component section
 interface RenderTableGroupProps {
   title: string;
   columns: Roster['columns'];
   rowsWithIndices: { row: RosterRow; originalIndex: number }[];
   savedRows: RosterRow[];
   hasEditAccess: boolean;
-  activeDropdown: { rowIndex: number; colKey: RosterColumnKey } | null;
+  activeDropdown: ActiveCellRef | null;
   activeInputCell: { rowIndex: number; colKey: RosterColumnKey } | null;
-  onCellClick: (rowIndex: number, colKey: RosterColumnKey, isTime?: boolean) => void;
+  onCellClick: (e: React.MouseEvent<HTMLTableCellElement>, rowIndex: number, colKey: RosterColumnKey) => void;
   onCellChange: (rosterId: string, rowIndex: number, colKey: RosterColumnKey, newValue: string) => void;
-  setActiveDropdown: (val: { rowIndex: number; colKey: RosterColumnKey } | null) => void;
+  setActiveDropdown: (val: ActiveCellRef | null) => void;
   setActiveInputCell: (val: { rowIndex: number; colKey: RosterColumnKey } | null) => void;
   roster: Roster;
 }
@@ -166,21 +196,25 @@ function RenderTableGroup({
   roster,
 }: RenderTableGroupProps) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       {title !== 'Weekly Schedule' && (
-        <h3 className="text-xs font-extrabold uppercase tracking-wider text-[var(--nysc-green)] border-b border-[var(--card-border)] pb-1.5 pl-1">
+        <h3 className="text-xs font-extrabold uppercase tracking-wider text-[var(--nysc-green)] border-b border-[var(--card-border)] pb-1 pl-1">
           📅 {title}
         </h3>
       )}
 
-      {/* Scrollable Responsive Table Wrapper */}
+      {/* Responsive Table Wrap with smooth horizontal scrolling */}
       <div className="w-full overflow-x-auto rounded-xl border border-[var(--card-border)] bg-[var(--card-bg)] shadow-sm">
-        <table className="w-full text-left border-collapse min-w-[500px]">
+        <table className="w-full text-left border-collapse min-w-[320px] sm:min-w-[480px]">
           <thead>
-            <tr className="bg-[var(--table-header-bg)] text-[var(--table-header-text)] text-[11px] font-extrabold uppercase tracking-wider">
-              {title === 'Weekly Schedule' && <th className="py-2.5 px-3 border-b border-[var(--card-border)]">Day</th>}
+            <tr className="bg-[var(--table-header-bg)] text-[var(--table-header-text)] text-[10px] sm:text-xs font-black uppercase tracking-wider">
+              {title === 'Weekly Schedule' && (
+                <th className="py-2 px-2.5 sm:px-3 border-b border-[var(--card-border)] whitespace-nowrap">
+                  Day
+                </th>
+              )}
               {columns.map((col) => (
-                <th key={col.key} className="py-2.5 px-3 border-b border-[var(--card-border)]">
+                <th key={col.key} className="py-2 px-2.5 sm:px-3 border-b border-[var(--card-border)] whitespace-nowrap">
                   {col.label}
                 </th>
               ))}
@@ -190,7 +224,7 @@ function RenderTableGroup({
             {rowsWithIndices.map(({ row, originalIndex }) => (
               <tr key={originalIndex} className="hover:bg-[var(--table-hover)] transition-colors">
                 {title === 'Weekly Schedule' && (
-                  <td className="py-3 px-3 font-extrabold text-[var(--nysc-green)]">
+                  <td className="py-2.5 px-2.5 sm:px-3 font-extrabold text-[var(--nysc-green)] text-[11px] sm:text-xs whitespace-nowrap">
                     {row.day}
                   </td>
                 )}
@@ -199,18 +233,17 @@ function RenderTableGroup({
                   const savedValue = savedRows[originalIndex]?.[col.key] || '';
                   const hasUnsavedChanges = currentValue.trim() !== savedValue.trim();
 
-                  const isDropdownOpen = activeDropdown?.rowIndex === originalIndex && activeDropdown?.colKey === col.key;
                   const isInputOpen = activeInputCell?.rowIndex === originalIndex && activeInputCell?.colKey === col.key;
+                  const isActiveSelectedCell = activeDropdown?.rowIndex === originalIndex && activeDropdown?.colKey === col.key;
 
                   return (
                     <td
                       key={col.key}
-                      onClick={() => onCellClick(originalIndex, col.key, col.isTime)}
-                      className={`relative py-3 px-3 transition-all ${
+                      onClick={(e) => onCellClick(e, originalIndex, col.key)}
+                      className={`relative py-2.5 px-2.5 sm:px-3 transition-all ${
                         hasEditAccess && col.editable ? 'editable cursor-pointer' : ''
-                      }`}
+                      } ${isActiveSelectedCell ? 'ring-2 ring-[var(--nysc-green)] bg-[var(--nysc-gold-light)]' : ''}`}
                     >
-                      {/* Cell Content or Edit Controls */}
                       {isInputOpen ? (
                         <InlineTextInput
                           initialValue={currentValue}
@@ -221,37 +254,21 @@ function RenderTableGroup({
                           onCancel={() => setActiveInputCell(null)}
                         />
                       ) : (
-                        <div className="flex items-center justify-between gap-1">
-                          <span className={col.key === 'person' || col.key === 'breakfast' || col.key === 'dinner' ? 'inline-block bg-[var(--sky-blue-light)] text-[var(--sky-blue)] px-2.5 py-1 rounded-full text-xs font-extrabold' : ''}>
-                            {currentValue || <span className="opacity-40 italic">Empty</span>}
+                        <div className="flex items-center justify-between gap-1.5 min-h-[24px]">
+                          <span
+                            className={
+                              col.key === 'person' || col.key === 'breakfast' || col.key === 'dinner'
+                                ? 'inline-block bg-[var(--sky-blue-light)] text-[var(--sky-blue)] px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-extrabold break-words'
+                                : 'text-[11px] sm:text-xs text-[var(--text-primary)]'
+                            }
+                          >
+                            {currentValue || <span className="opacity-40 italic font-normal">Empty</span>}
                           </span>
 
                           {hasUnsavedChanges && (
-                            <span className="w-2 h-2 rounded-full bg-[var(--nysc-gold)] animate-pulse" title="Unsaved edit" />
+                            <span className="w-2 h-2 rounded-full bg-[var(--nysc-gold)] shrink-0 animate-pulse" title="Unsaved edit" />
                           )}
                         </div>
-                      )}
-
-                      {/* Dropdown Popover */}
-                      {isDropdownOpen && (
-                        <DropdownPopover
-                          listType={col.list}
-                          currentValue={currentValue}
-                          isTime={col.isTime}
-                          onSelect={(newVal) => {
-                            onCellChange(roster.id, originalIndex, col.key, newVal);
-                            setActiveDropdown(null);
-                          }}
-                          onSwitchToInput={() => {
-                            setActiveDropdown(null);
-                            setActiveInputCell({ rowIndex: originalIndex, colKey: col.key });
-                          }}
-                          onAppendPartner={() => {
-                            if (!currentValue.endsWith('& ')) {
-                              onCellChange(roster.id, originalIndex, col.key, `${currentValue} & `);
-                            }
-                          }}
-                        />
                       )}
                     </td>
                   );
@@ -265,7 +282,6 @@ function RenderTableGroup({
   );
 }
 
-// Sub-component: Inline Text Input for direct typing
 function InlineTextInput({ initialValue, onSave, onCancel }: { initialValue: string; onSave: (val: string) => void; onCancel: () => void }) {
   const [val, setVal] = useState(initialValue);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -286,30 +302,30 @@ function InlineTextInput({ initialValue, onSave, onCancel }: { initialValue: str
         if (e.key === 'Enter') onSave(val);
         if (e.key === 'Escape') onCancel();
       }}
-      className="w-full bg-transparent border border-[var(--nysc-gold)] rounded px-2 py-1 text-xs text-[var(--text-primary)] focus:outline-none"
+      className="w-full bg-[var(--card-bg)] border-2 border-[var(--nysc-green)] rounded px-2 py-1 text-xs text-[var(--text-primary)] font-bold focus:outline-none shadow-sm"
     />
   );
 }
 
-// Sub-component: Floating Dropdown Popover
-interface DropdownPopoverProps {
-  listType?: 'members' | 'events' | 'foods';
+// Portal Dropdown Popover floating on top of viewport
+interface PortalDropdownPopoverProps {
+  activeCell: ActiveCellRef;
+  columns: Roster['columns'];
   currentValue: string;
-  isTime?: boolean;
   onSelect: (val: string) => void;
   onSwitchToInput: () => void;
   onAppendPartner: () => void;
 }
 
-function DropdownPopover({ listType, currentValue, isTime, onSelect, onSwitchToInput, onAppendPartner }: DropdownPopoverProps) {
+function PortalDropdownPopover({ activeCell, columns, currentValue, onSelect, onSwitchToInput, onAppendPartner }: PortalDropdownPopoverProps) {
+  const colDef = columns.find(c => c.key === activeCell.colKey);
   const suggestions = new Set<string>();
 
-  if (listType && PREDEFINED_SUGGESTIONS[listType]) {
-    PREDEFINED_SUGGESTIONS[listType].forEach((s) => suggestions.add(s));
+  if (colDef?.list && PREDEFINED_SUGGESTIONS[colDef.list]) {
+    PREDEFINED_SUGGESTIONS[colDef.list].forEach((s) => suggestions.add(s));
   }
 
-  // Time range generator
-  if (isTime) {
+  if (colDef?.isTime) {
     const timeOpts = [
       '05:30 AM – 06:00 AM',
       '06:00 AM – 07:00 AM',
@@ -325,8 +341,24 @@ function DropdownPopover({ listType, currentValue, isTime, onSelect, onSwitchToI
 
   const suggestionList = Array.from(suggestions);
 
+  // Position logic (place below cell, fallback above if near screen bottom)
+  const rect = activeCell.rect;
+  const popoverWidth = Math.max(220, rect.width);
+  let top = rect.bottom + window.scrollY + 4;
+  let left = Math.min(rect.left + window.scrollX, window.innerWidth - popoverWidth - 16);
+  left = Math.max(16, left);
+
   return (
-    <div className="absolute left-0 top-full mt-1 z-50 min-w-[200px] max-h-56 overflow-y-auto bg-[var(--card-bg)] border border-[var(--card-border)] rounded-xl shadow-2xl p-1 text-xs text-[var(--text-primary)] backdrop-blur-md animate-fade-in">
+    <div
+      id="roster-portal-popover"
+      style={{
+        position: 'absolute',
+        top: `${top}px`,
+        left: `${left}px`,
+        width: `${popoverWidth}px`,
+      }}
+      className="z-[9999] max-h-60 overflow-y-auto bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl shadow-2xl p-1.5 text-xs text-[var(--text-primary)] backdrop-blur-xl animate-fade-in"
+    >
       {suggestionList.map((item) => (
         <div
           key={item}
@@ -338,24 +370,23 @@ function DropdownPopover({ listType, currentValue, isTime, onSelect, onSwitchToI
             }
             onSelect(finalVal);
           }}
-          className="px-3 py-2 rounded-lg hover:bg-[var(--table-hover)] cursor-pointer font-semibold flex items-center justify-between"
+          className="px-3 py-2 rounded-xl hover:bg-[var(--table-hover)] cursor-pointer font-bold flex items-center justify-between transition-colors"
         >
           <span>{item}</span>
-          {currentValue.includes(item) && <Check className="w-3.5 h-3.5 text-[var(--nysc-green)]" />}
+          {currentValue.includes(item) && <Check className="w-3.5 h-3.5 text-[var(--nysc-green)] shrink-0" />}
         </div>
       ))}
 
-      {/* Action Buttons inside Dropdown */}
       <div className="border-t border-[var(--card-border)] mt-1 pt-1 space-y-0.5">
-        {listType === 'members' && (
+        {colDef?.list === 'members' && (
           <div
             onClick={(e) => {
               e.stopPropagation();
               onAppendPartner();
             }}
-            className="px-3 py-2 rounded-lg text-[var(--nysc-gold)] hover:bg-[var(--nysc-gold-light)] cursor-pointer font-extrabold flex items-center gap-1.5"
+            className="px-3 py-2 rounded-xl text-[var(--nysc-gold)] hover:bg-[var(--nysc-gold-light)] cursor-pointer font-black flex items-center gap-1.5 transition-colors"
           >
-            <Plus className="w-3.5 h-3.5" />
+            <Plus className="w-3.5 h-3.5 shrink-0" />
             <span>Add Partner (&)</span>
           </div>
         )}
@@ -365,9 +396,9 @@ function DropdownPopover({ listType, currentValue, isTime, onSelect, onSwitchToI
             e.stopPropagation();
             onSwitchToInput();
           }}
-          className="px-3 py-2 rounded-lg text-[var(--sky-blue)] hover:bg-[var(--sky-blue-light)] cursor-pointer font-extrabold flex items-center gap-1.5"
+          className="px-3 py-2 rounded-xl text-[var(--sky-blue)] hover:bg-[var(--sky-blue-light)] cursor-pointer font-black flex items-center gap-1.5 transition-colors"
         >
-          <Edit3 className="w-3.5 h-3.5" />
+          <Edit3 className="w-3.5 h-3.5 shrink-0" />
           <span>Write Custom...</span>
         </div>
       </div>

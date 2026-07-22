@@ -6,16 +6,16 @@ import RosterCard from '@/components/RosterCard';
 import ClashCheckerAlert from '@/components/ClashCheckerAlert';
 import ControlDock from '@/components/ControlDock';
 import { exportRosterPNG } from '@/components/PosterExporter';
-import { RostersMap, AuthRole, RosterColumnKey } from '@/lib/types';
+import { RostersMap, RosterColumnKey } from '@/lib/types';
 import { DEFAULT_ROSTERS } from '@/lib/constants';
 import { performClashCheck } from '@/lib/clashChecker';
-import { sha256, AUTH_HASHES } from '@/lib/auth';
+import { useAuth } from '@/lib/authContext';
 
 export default function HomePage() {
+  const { authRole, authPassword } = useAuth();
+
   const [rosters, setRosters] = useState<RostersMap>(DEFAULT_ROSTERS);
   const [savedRosters, setSavedRosters] = useState<RostersMap>(DEFAULT_ROSTERS);
-  const [authRole, setAuthRole] = useState<AuthRole>('none');
-  const [authPassword, setAuthPassword] = useState<string>('');
   const [isDark, setIsDark] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -34,28 +34,6 @@ export default function HomePage() {
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDark);
   }, [isDark]);
-
-  const handleLogin = async (password: string) => {
-    const hash = await sha256(password);
-    if (hash === AUTH_HASHES.master) {
-      setAuthRole('master');
-      setAuthPassword(password);
-      document.body.classList.add('editing-active');
-      return true;
-    } else if (hash === AUTH_HASHES.prayer_coordinator) {
-      setAuthRole('prayer_coordinator');
-      setAuthPassword(password);
-      document.body.classList.add('editing-active');
-      return true;
-    }
-    return false;
-  };
-
-  const handleLogout = () => {
-    setAuthRole('none');
-    setAuthPassword('');
-    document.body.classList.remove('editing-active');
-  };
 
   const handleCellChange = (rosterId: string, rowIndex: number, colKey: RosterColumnKey, newValue: string) => {
     setRosters(prev => {
@@ -95,7 +73,6 @@ export default function HomePage() {
 
   const handleReset = async () => {
     if (authRole !== 'master') return alert('Only Master Admin can reset.');
-    if (!confirm('Reset ALL rosters to defaults?')) return;
     try {
       const res = await fetch('/api/rosters', {
         method: 'POST',
@@ -129,17 +106,11 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen flex flex-col pb-28">
-      <Navbar
-        authRole={authRole}
-        onLogin={handleLogin}
-        onLogout={handleLogout}
-        isDark={isDark}
-        onToggleTheme={() => setIsDark(!isDark)}
-      />
+      <Navbar isDark={isDark} onToggleTheme={() => setIsDark(!isDark)} />
 
-      <main className="flex-1 w-full max-w-4xl mx-auto px-3 py-5 space-y-5">
-        {/* Hero Banner */}
-        <div className="text-center space-y-2 py-3">
+      <main className="flex-1 w-full max-w-4xl mx-auto px-3.5 py-5 space-y-5">
+        {/* Banner Section */}
+        <div className="text-center space-y-2 py-2 sm:py-3">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--nysc-gold-light)] text-[var(--nysc-gold)] border border-[var(--nysc-gold)]/30 text-[11px] font-extrabold">
             🇳🇬 NYSC Corps Members Fellowship
           </div>
@@ -147,7 +118,7 @@ export default function HomePage() {
             NCCF Family House Schedules
           </h2>
           <p className="text-[11px] sm:text-xs text-[var(--text-muted)] max-w-md mx-auto font-semibold">
-            Tap any cell to select from options. Double-tap to type custom entries.
+            Tap any cell to select from predefined options or double-tap to type custom entries.
           </p>
         </div>
 

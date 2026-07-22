@@ -2,30 +2,33 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { Sun, Moon, Lock, Unlock, Home, Sparkles, BookOpen, Brush, Utensils } from 'lucide-react';
+import { Sun, Moon, Edit, LogOut, Home, Sparkles, BookOpen, Brush, Utensils, Eye, EyeOff } from 'lucide-react';
+import { useAuth } from '@/lib/authContext';
 
 interface NavbarProps {
-  authRole: 'none' | 'prayer_coordinator' | 'master';
-  onLogin: (password: string) => Promise<boolean> | boolean;
-  onLogout: () => void;
   isDark: boolean;
   onToggleTheme: () => void;
 }
 
-export default function Navbar({ authRole, onLogin, onLogout, isDark, onToggleTheme }: NavbarProps) {
+export default function Navbar({ isDark, onToggleTheme }: NavbarProps) {
   const pathname = usePathname();
+  const { authRole, login, logout } = useAuth();
+  
   const [showModal, setShowModal] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
+  const [showPasswordText, setShowPasswordText] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const success = await onLogin(passwordInput);
+    const success = await login(passwordInput);
     if (success) {
       setShowModal(false);
       setPasswordInput('');
       setErrorMsg('');
+      setShowPasswordText(false);
     } else {
       setErrorMsg('Invalid password. Try again.');
     }
@@ -42,24 +45,30 @@ export default function Navbar({ authRole, onLogin, onLogout, isDark, onToggleTh
   return (
     <>
       <nav className="sticky top-0 z-40 w-full backdrop-blur-md bg-[var(--card-bg)]/90 border-b border-[var(--card-border)] shadow-sm transition-colors">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 py-2.5 flex items-center justify-between">
           
-          {/* Brand Logo & Name */}
+          {/* Official NCCF Logo & Title */}
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-full bg-[var(--nysc-green)] flex items-center justify-center text-white font-extrabold text-lg shadow-md group-hover:scale-105 transition-transform">
-              ✨
+            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-[var(--nysc-gold)] shadow-md group-hover:scale-105 transition-transform flex items-center justify-center bg-white shrink-0">
+              <Image
+                src="/images/images.jpg"
+                alt="NCCF Official Logo"
+                width={40}
+                height={40}
+                className="object-cover w-full h-full"
+              />
             </div>
             <div>
-              <h1 className="font-extrabold text-lg tracking-tight text-[var(--nysc-green)] leading-none">
+              <h1 className="font-extrabold text-base md:text-lg tracking-tight text-[var(--nysc-green)] leading-none">
                 NCCF Family House
               </h1>
-              <p className="text-[10px] uppercase font-bold tracking-widest text-[var(--nysc-gold)] mt-0.5">
+              <p className="text-[10px] uppercase font-extrabold tracking-widest text-[var(--nysc-gold)] mt-0.5">
                 Official Roster Board
               </p>
             </div>
           </Link>
 
-          {/* Nav Links */}
+          {/* Desktop Nav Links */}
           <div className="hidden md:flex items-center gap-1 bg-[var(--bg-page)] p-1 rounded-full border border-[var(--card-border)]">
             {navLinks.map((link) => {
               const Icon = link.icon;
@@ -94,25 +103,26 @@ export default function Navbar({ authRole, onLogin, onLogout, isDark, onToggleTh
             {authRole === 'none' ? (
               <button
                 onClick={() => setShowModal(true)}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[var(--nysc-green)] text-white text-xs font-bold hover:opacity-90 shadow-sm transition-all"
+                className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[var(--nysc-green)] text-white text-xs font-extrabold hover:opacity-90 shadow-sm transition-all"
               >
-                <Lock className="w-3.5 h-3.5" />
-                <span>Unlock Editing</span>
+                <Edit className="w-3.5 h-3.5" />
+                <span>Edit</span>
               </button>
             ) : (
               <button
-                onClick={onLogout}
+                onClick={logout}
                 className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[var(--nysc-gold)] text-[var(--text-primary)] text-xs font-extrabold shadow-sm hover:opacity-90 transition-all"
+                title="Click to Logout"
               >
-                <Unlock className="w-3.5 h-3.5" />
-                <span>{authRole === 'master' ? 'Master Admin' : 'Prayer Admin'}</span>
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Logout ({authRole === 'master' ? 'Master' : 'Prayer'})</span>
               </button>
             )}
           </div>
         </div>
 
-        {/* Mobile Navigation Row */}
-        <div className="flex md:hidden items-center justify-around border-t border-[var(--card-border)] py-2 px-2 bg-[var(--card-bg)]">
+        {/* Mobile Navigation Bar */}
+        <div className="flex md:hidden items-center justify-around border-t border-[var(--card-border)] py-1.5 px-2 bg-[var(--card-bg)]">
           {navLinks.map((link) => {
             const Icon = link.icon;
             const isActive = pathname === link.href;
@@ -132,26 +142,42 @@ export default function Navbar({ authRole, onLogin, onLogout, isDark, onToggleTh
         </div>
       </nav>
 
-      {/* Password Modal Dialog */}
+      {/* Password Modal Dialog with Eye Toggle */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="w-full max-w-sm bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl p-6 shadow-2xl">
-            <h3 className="text-base font-extrabold text-[var(--nysc-green)] mb-1">
-              🔐 Unlock Editing Mode
-            </h3>
-            <p className="text-xs text-[var(--text-muted)] mb-4">
-              Enter your coordinator or master admin password to unlock live schedule editing.
-            </p>
+          <div className="w-full max-w-sm bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full overflow-hidden border border-[var(--nysc-gold)] shrink-0 bg-white">
+                <Image src="/images/images.jpg" alt="NCCF Logo" width={40} height={40} className="object-cover w-full h-full" />
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-[var(--nysc-green)] leading-none">
+                  Admin Edit Access
+                </h3>
+                <p className="text-xs text-[var(--text-muted)] mt-1 font-medium">
+                  Enter password to unlock schedule editing.
+                </p>
+              </div>
+            </div>
 
             <form onSubmit={handlePasswordSubmit} className="space-y-4">
-              <input
-                type="password"
-                placeholder="Enter password..."
-                value={passwordInput}
-                onChange={(e) => setPasswordInput(e.target.value)}
-                autoFocus
-                className="w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--bg-page)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--nysc-green)]"
-              />
+              <div className="relative">
+                <input
+                  type={showPasswordText ? 'text' : 'password'}
+                  placeholder="Enter admin password..."
+                  value={passwordInput}
+                  onChange={(e) => setPasswordInput(e.target.value)}
+                  autoFocus
+                  className="w-full pl-4 pr-10 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--bg-page)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--nysc-green)] font-medium"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPasswordText(!showPasswordText)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)] p-1"
+                >
+                  {showPasswordText ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
 
               {errorMsg && (
                 <p className="text-xs font-bold text-red-500">{errorMsg}</p>
@@ -160,16 +186,16 @@ export default function Navbar({ authRole, onLogin, onLogout, isDark, onToggleTh
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => { setShowModal(false); setErrorMsg(''); }}
+                  onClick={() => { setShowModal(false); setErrorMsg(''); setShowPasswordText(false); }}
                   className="px-4 py-2 text-xs font-bold text-[var(--text-muted)] hover:text-[var(--text-primary)]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 text-xs font-bold rounded-xl bg-[var(--nysc-green)] text-white shadow-md hover:opacity-90"
+                  className="px-5 py-2 text-xs font-extrabold rounded-xl bg-[var(--nysc-green)] text-white shadow-md hover:opacity-90"
                 >
-                  Unlock
+                  Unlock Access
                 </button>
               </div>
             </form>

@@ -5,15 +5,15 @@ import Navbar from '@/components/Navbar';
 import RosterCard from '@/components/RosterCard';
 import ControlDock from '@/components/ControlDock';
 import { exportRosterPNG } from '@/components/PosterExporter';
-import { RostersMap, AuthRole, RosterColumnKey } from '@/lib/types';
+import { RostersMap, RosterColumnKey } from '@/lib/types';
 import { DEFAULT_ROSTERS } from '@/lib/constants';
-import { sha256, AUTH_HASHES } from '@/lib/auth';
+import { useAuth } from '@/lib/authContext';
 
 export default function PrayerPage() {
+  const { authRole, authPassword } = useAuth();
+
   const [rosters, setRosters] = useState<RostersMap>(DEFAULT_ROSTERS);
   const [savedRosters, setSavedRosters] = useState<RostersMap>(DEFAULT_ROSTERS);
-  const [authRole, setAuthRole] = useState<AuthRole>('none');
-  const [authPassword, setAuthPassword] = useState<string>('');
   const [isDark, setIsDark] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -24,13 +24,6 @@ export default function PrayerPage() {
   }, []);
 
   useEffect(() => { document.documentElement.classList.toggle('dark', isDark); }, [isDark]);
-
-  const handleLogin = async (password: string) => {
-    const hash = await sha256(password);
-    if (hash === AUTH_HASHES.master) { setAuthRole('master'); setAuthPassword(password); document.body.classList.add('editing-active'); return true; }
-    if (hash === AUTH_HASHES.prayer_coordinator) { setAuthRole('prayer_coordinator'); setAuthPassword(password); document.body.classList.add('editing-active'); return true; }
-    return false;
-  };
 
   const handleCellChange = (_: string, rowIndex: number, colKey: RosterColumnKey, newValue: string) => {
     setRosters(prev => {
@@ -55,13 +48,15 @@ export default function PrayerPage() {
     Object.keys(r).forEach(col => { if (col !== 'day' && r[col] !== savedRosters.prayer_roster.rows[idx]?.[col]) unsavedCount++; });
   });
 
+  const hasEdit = authRole === 'master' || authRole === 'prayer_coordinator';
+
   return (
     <div className="min-h-screen flex flex-col pb-28">
-      <Navbar authRole={authRole} onLogin={handleLogin} onLogout={() => { setAuthRole('none'); document.body.classList.remove('editing-active'); }} isDark={isDark} onToggleTheme={() => setIsDark(!isDark)} />
-      <main className="flex-1 max-w-4xl w-full mx-auto px-3 py-5 space-y-5">
-        <RosterCard roster={rosters.prayer_roster} hasEditAccess={authRole === 'master' || authRole === 'prayer_coordinator'} onCellChange={handleCellChange} savedRows={savedRosters.prayer_roster.rows} />
+      <Navbar isDark={isDark} onToggleTheme={() => setIsDark(!isDark)} />
+      <main className="flex-1 max-w-4xl w-full mx-auto px-3.5 py-5 space-y-5">
+        <RosterCard roster={rosters.prayer_roster} hasEditAccess={hasEdit} onCellChange={handleCellChange} savedRows={savedRosters.prayer_roster.rows} />
       </main>
-      <ControlDock hasEditAccess={authRole !== 'none'} unsavedCount={unsavedCount} onSave={handleSave} onCancel={() => setRosters(JSON.parse(JSON.stringify(savedRosters)))} onReset={() => {}} onDownload={() => exportRosterPNG(rosters.prayer_roster, isDark)} isSaving={isSaving} />
+      <ControlDock hasEditAccess={hasEdit} unsavedCount={unsavedCount} onSave={handleSave} onCancel={() => setRosters(JSON.parse(JSON.stringify(savedRosters)))} onReset={() => {}} onDownload={() => exportRosterPNG(rosters.prayer_roster, isDark)} isSaving={isSaving} />
     </div>
   );
 }
