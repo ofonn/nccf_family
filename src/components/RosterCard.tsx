@@ -44,7 +44,6 @@ export default function RosterCard({ roster, hasEditAccess, onCellChange, savedR
   }, []);
 
   const handleCellClick = (e: React.MouseEvent<HTMLTableCellElement>, rowIndex: number, colKey: RosterColumnKey) => {
-    // STRICT GUARD: If user has no edit permissions, cell click does nothing!
     if (!hasEditAccess) return;
 
     // Direct toggle check: if clicking the active dropdown cell, close it immediately!
@@ -138,12 +137,12 @@ export default function RosterCard({ roster, hasEditAccess, onCellChange, savedR
         </div>
       )}
 
-      {/* Portal Popover with Clear Unblurred Scrim */}
+      {/* Portal Popover with Subtle Backdrop Blur for Depth */}
       {activeDropdown && typeof window !== 'undefined' && createPortal(
         <>
-          {/* Clear Scrim without blur so background content stays 100% readable for comparisons */}
+          {/* Subtle 1px Backdrop Blur for depth while keeping content readable */}
           <div
-            className="fixed inset-0 z-[9998]"
+            className="fixed inset-0 bg-black/25 backdrop-blur-[1px] z-[9998]"
             onClick={() => setActiveDropdown(null)}
           />
 
@@ -274,7 +273,7 @@ function RenderTableGroup({
                           <span
                             className={
                               col.key === 'person' || col.key === 'breakfast' || col.key === 'dinner'
-                                ? `inline-flex items-center rounded-full bg-emerald-700/15 dark:bg-emerald-500/30 px-3 py-0.5 text-xs font-extrabold text-emerald-950 dark:text-white ring-1 ring-emerald-700/30 dark:ring-emerald-400/50 ${textWrapClass}`
+                                ? `inline-flex items-center rounded-full bg-emerald-100 text-emerald-950 dark:bg-emerald-600/40 dark:text-white dark:ring-1 dark:ring-emerald-400/60 px-3 py-0.5 text-xs font-black shadow-sm ${textWrapClass}`
                                 : `text-[11px] sm:text-xs text-[var(--text-primary)] ${textWrapClass}`
                             }
                           >
