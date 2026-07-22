@@ -3,6 +3,65 @@
 import { Roster, RostersMap } from '@/lib/types';
 import html2canvas from 'html2canvas';
 
+// Universal iOS & Desktop compatible download helper
+async function saveCanvasImage(canvas: HTMLCanvasElement, filename: string) {
+  const isIOS =
+    typeof navigator !== 'undefined' &&
+    (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, 'image/png')
+  );
+
+  if (!blob) {
+    const dataUrl = canvas.toDataURL('image/png');
+    const link = document.createElement('a');
+    link.download = filename;
+    link.href = dataUrl;
+    link.click();
+    return;
+  }
+
+  // 1. Try Web Share API on iOS (opens native iOS Share Sheet -> "Save Image")
+  if (isIOS && typeof navigator.share === 'function' && typeof navigator.canShare === 'function') {
+    try {
+      const file = new File([blob], filename, { type: 'image/png' });
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: 'NCCF Roster Schedule',
+          text: 'Official Roster Schedule - NCCF Family House',
+        });
+        return;
+      }
+    } catch (err: any) {
+      if (err.name === 'AbortError') return; // User closed share sheet
+      console.warn("Web Share failed, using iOS tab fallback:", err);
+    }
+  }
+
+  // 2. iOS Fallback: Open blob URL in a new tab for long-press "Save to Photos"
+  if (isIOS) {
+    const blobUrl = URL.createObjectURL(blob);
+    const newTab = window.open(blobUrl, '_blank');
+    if (!newTab) {
+      window.location.href = blobUrl;
+    }
+    return;
+  }
+
+  // 3. Desktop / Android standard anchor download
+  const blobUrl = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.download = filename;
+  link.href = blobUrl;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+}
+
 export async function exportRosterPNG(roster: Roster, isDark: boolean) {
   const container = document.createElement('div');
   container.className = 'poster-export-node';
@@ -129,10 +188,7 @@ export async function exportRosterPNG(roster: Roster, isDark: boolean) {
     });
     document.body.removeChild(container);
 
-    const link = document.createElement('a');
-    link.download = `NCCF_${roster.title.replace(/\s+/g, '_')}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
+    await saveCanvasImage(canvas, `NCCF_${roster.title.replace(/\s+/g, '_')}.png`);
   } catch (err) {
     console.error("Poster export error:", err);
     if (document.body.contains(container)) document.body.removeChild(container);
@@ -279,10 +335,7 @@ export async function exportAllRostersPNG(rosters: RostersMap, isDark: boolean) 
     });
     document.body.removeChild(container);
 
-    const link = document.createElement('a');
-    link.download = `NCCF_Full_Master_Schedule.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
+    await saveCanvasImage(canvas, `NCCF_Full_Master_Schedule.png`);
   } catch (err) {
     console.error("Master poster export error:", err);
     if (document.body.contains(container)) document.body.removeChild(container);
