@@ -49,9 +49,9 @@ export default function Navbar({ isDark, onToggleTheme }: NavbarProps) {
           
           {/* Official NCCF Logo & Title */}
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-[var(--nysc-gold)] shadow-md group-hover:scale-105 transition-transform flex items-center justify-center bg-white shrink-0">
+            <div className="w-10 h-10 rounded-full overflow-hidden shadow-sm group-hover:scale-105 transition-transform flex items-center justify-center bg-white shrink-0">
               <Image
-                src="/images/images.jpg"
+                src="/images/images.webp"
                 alt="NCCF Official Logo"
                 width={40}
                 height={40}
@@ -147,8 +147,8 @@ export default function Navbar({ isDark, onToggleTheme }: NavbarProps) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
           <div className="w-full max-w-sm bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl p-6 shadow-2xl space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full overflow-hidden border border-[var(--nysc-gold)] shrink-0 bg-white">
-                <Image src="/images/images.jpg" alt="NCCF Logo" width={40} height={40} className="object-cover w-full h-full" />
+              <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 bg-white shadow-sm">
+                <Image src="/images/images.webp" alt="NCCF Logo" width={40} height={40} className="object-cover w-full h-full" />
               </div>
               <div>
                 <h3 className="text-base font-extrabold text-[var(--nysc-green)] leading-none">

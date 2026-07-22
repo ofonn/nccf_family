@@ -134,7 +134,7 @@ export const DEFAULT_ROSTERS: RostersMap = {
     rows: [
       { day: "Sunday", person: "Judith", breakfast: "Jollof Rice", dinner: "Spag Jollof" },
       { day: "Monday", person: "Opeyemi", breakfast: "Rice & Stew", dinner: "Eba" },
-      { day: "Tuesday", person: "Ofonime", breakfast: "Fasting (till evening)", dinner: "Moi moi" },
+      { day: "Tuesday", person: "Ola", breakfast: "Fasting (till evening)", dinner: "Moi moi" },
       { day: "Wednesday", person: "Olayinka", breakfast: "Rice & Beans", dinner: "Amala" },
       { day: "Thursday", person: "Chidera", breakfast: "Rice & Stew", dinner: "Stew Spaghetti" },
       { day: "Friday", person: "Mimi", breakfast: "Jollof Spag", dinner: "Beans" },

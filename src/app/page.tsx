@@ -10,6 +10,7 @@ import { RostersMap, RosterColumnKey } from '@/lib/types';
 import { DEFAULT_ROSTERS } from '@/lib/constants';
 import { performClashCheck } from '@/lib/clashChecker';
 import { useAuth } from '@/lib/authContext';
+import { Loader2 } from 'lucide-react';
 
 export default function HomePage() {
   const { authRole, authPassword } = useAuth();
@@ -18,6 +19,7 @@ export default function HomePage() {
   const [savedRosters, setSavedRosters] = useState<RostersMap>(DEFAULT_ROSTERS);
   const [isDark, setIsDark] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     fetch('/api/rosters')
@@ -28,7 +30,8 @@ export default function HomePage() {
           setSavedRosters(data.rosters);
         }
       })
-      .catch(err => console.error("API load error:", err));
+      .catch(err => console.error("API load error:", err))
+      .finally(() => setIsLoading(false));
   }, []);
 
   useEffect(() => {
@@ -85,7 +88,6 @@ export default function HomePage() {
     } catch (e) { console.error(e); }
   };
 
-  // Count unsaved changes
   let unsavedCount = 0;
   (Object.keys(rosters) as (keyof RostersMap)[]).forEach(rId => {
     rosters[rId].rows.forEach((r, idx) => {
@@ -110,33 +112,41 @@ export default function HomePage() {
 
       <main className="flex-1 w-full max-w-4xl mx-auto px-3.5 py-5 space-y-5">
         {/* Banner Section */}
-        <div className="text-center space-y-2 py-2 sm:py-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--nysc-gold-light)] text-[var(--nysc-gold)] border border-[var(--nysc-gold)]/30 text-[11px] font-extrabold">
-            🇳🇬 NYSC Corps Members Fellowship
-          </div>
+        <div className="text-center space-y-1.5 py-2 sm:py-3">
           <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-[var(--nysc-green)] tracking-tight leading-tight">
             NCCF Family House Schedules
           </h2>
           <p className="text-[11px] sm:text-xs text-[var(--text-muted)] max-w-md mx-auto font-semibold">
-            Tap any cell to select from predefined options or double-tap to type custom entries.
+            Tap any cell to select options or double-tap to type custom entries.
           </p>
         </div>
 
-        {/* Live Clash Warnings */}
-        <ClashCheckerAlert clashes={clashes} />
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-16 gap-3 text-[var(--nysc-green)]">
+            <Loader2 className="w-8 h-8 animate-spin" />
+            <p className="text-xs font-extrabold uppercase tracking-widest text-[var(--text-muted)]">
+              Loading Roster Board...
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Live Clash Warnings */}
+            <ClashCheckerAlert clashes={clashes} />
 
-        {/* Modular Table Cards */}
-        <div className="space-y-5">
-          {rosterEntries.map(({ key, editCheck }) => (
-            <RosterCard
-              key={key}
-              roster={rosters[key]}
-              hasEditAccess={editCheck}
-              onCellChange={handleCellChange}
-              savedRows={savedRosters[key].rows}
-            />
-          ))}
-        </div>
+            {/* Modular Table Cards */}
+            <div className="space-y-5">
+              {rosterEntries.map(({ key, editCheck }) => (
+                <RosterCard
+                  key={key}
+                  roster={rosters[key]}
+                  hasEditAccess={editCheck}
+                  onCellChange={handleCellChange}
+                  savedRows={savedRosters[key].rows}
+                />
+              ))}
+            </div>
+          </>
+        )}
       </main>
 
       <ControlDock

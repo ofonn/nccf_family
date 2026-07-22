@@ -86,12 +86,12 @@ export async function exportRosterPNG(roster: Roster, isDark: boolean) {
       
       <!-- Watermark Background Logo -->
       <div style="position: absolute; top: 55%; left: 50%; transform: translate(-50%, -50%); width: 300px; height: 300px; opacity: 0.05; pointer-events: none; z-index: 1;">
-        <img src="/images/images.jpg" style="width: 100%; height: 100%; object-fit: contain; filter: grayscale(100%);" />
+        <img src="/images/images.webp" style="width: 100%; height: 100%; object-fit: contain; filter: grayscale(100%);" />
       </div>
 
       <!-- Natural Unclipped Top Logo -->
       <div style="position: relative; z-index: 2; text-align: center; margin-bottom: 10px;">
-        <img src="/images/images.jpg" style="height: 60px; object-fit: contain; margin: 0 auto; display: block;" />
+        <img src="/images/images.webp" style="height: 60px; object-fit: contain; margin: 0 auto; display: block;" />
       </div>
 
       <!-- Heading Hierarchy under Logo -->
@@ -236,12 +236,12 @@ export async function exportAllRostersPNG(rosters: RostersMap, isDark: boolean) 
       
       <!-- Watermark Background Logo -->
       <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 360px; height: 360px; opacity: 0.04; pointer-events: none; z-index: 1;">
-        <img src="/images/images.jpg" style="width: 100%; height: 100%; object-fit: contain; filter: grayscale(100%);" />
+        <img src="/images/images.webp" style="width: 100%; height: 100%; object-fit: contain; filter: grayscale(100%);" />
       </div>
 
       <!-- Top Unclipped Logo -->
       <div style="position: relative; z-index: 2; text-align: center; margin-bottom: 10px;">
-        <img src="/images/images.jpg" style="height: 64px; object-fit: contain; margin: 0 auto; display: block;" />
+        <img src="/images/images.webp" style="height: 64px; object-fit: contain; margin: 0 auto; display: block;" />
       </div>
 
       <!-- Header under Logo -->
