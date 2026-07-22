@@ -29,7 +29,6 @@ export default function RosterCard({ roster, hasEditAccess, onCellChange, savedR
     const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
       const popoverEl = document.getElementById('roster-portal-popover');
       if (popoverEl && !popoverEl.contains(e.target as Node)) {
-        // Only close if not clicking a table cell
         const target = e.target as HTMLElement;
         if (!target.closest('td.editable')) {
           setActiveDropdown(null);
@@ -48,6 +47,12 @@ export default function RosterCard({ roster, hasEditAccess, onCellChange, savedR
     // STRICT GUARD: If user has no edit permissions, cell click does nothing!
     if (!hasEditAccess) return;
 
+    // Direct toggle check: if clicking the active dropdown cell, close it immediately!
+    if (activeDropdown && activeDropdown.rowIndex === rowIndex && activeDropdown.colKey === colKey) {
+      setActiveDropdown(null);
+      return;
+    }
+
     const targetTd = e.currentTarget;
     const rect = targetTd.getBoundingClientRect();
     const now = Date.now();
@@ -60,16 +65,11 @@ export default function RosterCard({ roster, hasEditAccess, onCellChange, savedR
       setActiveInputCell({ rowIndex, colKey });
       clickTimerRef.current = { lastTime: 0, timer: null };
     } else {
-      // Single tap / click -> Toggle option dropdown (Clicking same cell closes it!)
+      // Single tap / click -> Toggle option dropdown
       const timer = setTimeout(() => {
-        setActiveDropdown((prev) => {
-          if (prev && prev.rowIndex === rowIndex && prev.colKey === colKey) {
-            return null; // Toggles closed if clicking the active cell!
-          }
-          setActiveInputCell(null);
-          return { rowIndex, colKey, rect };
-        });
-      }, 150);
+        setActiveInputCell(null);
+        setActiveDropdown({ rowIndex, colKey, rect });
+      }, 120);
       clickTimerRef.current = { lastTime: now, timer };
     }
   };
@@ -98,12 +98,6 @@ export default function RosterCard({ roster, hasEditAccess, onCellChange, savedR
             </p>
           </div>
         </div>
-
-        {hasEditAccess && (
-          <span className="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full bg-[var(--nysc-gold-light)] text-[var(--nysc-gold)] border border-[var(--nysc-gold)]/30 shrink-0">
-            Edit Mode
-          </span>
-        )}
       </div>
 
       {/* Roster Layout Rendering */}
@@ -144,12 +138,12 @@ export default function RosterCard({ roster, hasEditAccess, onCellChange, savedR
         </div>
       )}
 
-      {/* Portal Popover with Backdrop Scrim */}
+      {/* Portal Popover with Clear Unblurred Scrim */}
       {activeDropdown && typeof window !== 'undefined' && createPortal(
         <>
-          {/* Backdrop Scrim for Depth */}
+          {/* Clear Scrim without blur so background content stays 100% readable for comparisons */}
           <div
-            className="fixed inset-0 bg-black/25 backdrop-blur-[2px] z-[9998] transition-opacity"
+            className="fixed inset-0 z-[9998]"
             onClick={() => setActiveDropdown(null)}
           />
 
@@ -219,7 +213,7 @@ function RenderTableGroup({
 
       {/* Responsive Table Wrap */}
       <div className="w-full overflow-x-auto rounded-xl border border-[var(--card-border)] bg-[var(--card-bg)] shadow-sm">
-        <table className="w-full text-left border-collapse min-w-[320px] sm:min-w-[480px]">
+        <table className="w-full text-left border-collapse min-w-[340px] sm:min-w-[500px]">
           <thead>
             <tr className="bg-[var(--table-header-bg)] text-[var(--table-header-text)] text-[10px] sm:text-xs font-black uppercase tracking-wider">
               {title === 'Weekly Schedule' && (
@@ -250,6 +244,10 @@ function RenderTableGroup({
                   const isInputOpen = activeInputCell?.rowIndex === originalIndex && activeInputCell?.colKey === col.key;
                   const isActiveSelectedCell = activeDropdown?.rowIndex === originalIndex && activeDropdown?.colKey === col.key;
 
+                  // Text wrapping rule: stretch to single line unless text length exceeds 22 characters
+                  const isShortText = currentValue.length <= 22;
+                  const textWrapClass = isShortText ? 'whitespace-nowrap' : 'break-words';
+
                   return (
                     <td
                       key={col.key}
@@ -276,8 +274,8 @@ function RenderTableGroup({
                           <span
                             className={
                               col.key === 'person' || col.key === 'breakfast' || col.key === 'dinner'
-                                ? 'inline-flex items-center rounded-full bg-emerald-600/10 dark:bg-emerald-400/10 px-2.5 py-0.5 text-xs font-bold text-emerald-800 dark:text-emerald-300 ring-1 ring-emerald-600/20 dark:ring-emerald-400/20'
-                                : 'text-[11px] sm:text-xs text-[var(--text-primary)]'
+                                ? `inline-flex items-center rounded-full bg-emerald-700/15 dark:bg-emerald-500/30 px-3 py-0.5 text-xs font-extrabold text-emerald-950 dark:text-white ring-1 ring-emerald-700/30 dark:ring-emerald-400/50 ${textWrapClass}`
+                                : `text-[11px] sm:text-xs text-[var(--text-primary)] ${textWrapClass}`
                             }
                           >
                             {currentValue || <span className="opacity-40 italic font-normal">Empty</span>}
@@ -325,7 +323,7 @@ function InlineTextInput({ initialValue, onSave, onCancel }: { initialValue: str
   );
 }
 
-// Portal Dropdown Popover floating on top of viewport with HIGH-CONTRAST TEXT
+// Portal Dropdown Popover floating on top of viewport
 interface PortalDropdownPopoverProps {
   activeCell: ActiveCellRef;
   columns: Roster['columns'];
@@ -374,7 +372,7 @@ function PortalDropdownPopover({ activeCell, columns, currentValue, onSelect, on
         left: `${left}px`,
         width: `${popoverWidth}px`,
       }}
-      className="z-[9999] max-h-60 overflow-y-auto bg-white dark:bg-[#1C2541] border border-black/15 dark:border-white/15 rounded-xl shadow-[0_16px_48px_-8px_rgba(0,0,0,0.4)] p-1.5 text-xs backdrop-blur-xl animate-in fade-in-0 zoom-in-95 duration-150"
+      className="z-[9999] max-h-60 overflow-y-auto bg-white dark:bg-[#1C2541] border border-black/20 dark:border-white/20 rounded-xl shadow-[0_16px_48px_-8px_rgba(0,0,0,0.4)] p-1.5 text-xs animate-in fade-in-0 zoom-in-95 duration-150"
     >
       {suggestionList.map((item) => (
         <div
@@ -387,7 +385,7 @@ function PortalDropdownPopover({ activeCell, columns, currentValue, onSelect, on
             }
             onSelect(finalVal);
           }}
-          className="px-3.5 py-2.5 rounded-lg text-slate-900 dark:text-slate-100 hover:bg-emerald-500/15 cursor-pointer font-bold flex items-center justify-between transition-colors"
+          className="px-3.5 py-2.5 rounded-lg text-slate-900 dark:text-slate-100 hover:bg-emerald-500/20 cursor-pointer font-bold flex items-center justify-between transition-colors"
         >
           <span>{item}</span>
           {currentValue.includes(item) && <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />}
