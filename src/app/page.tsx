@@ -51,8 +51,8 @@ export default function HomePage() {
           </div>
         ) : (
           <>
-            {/* Live Clash Warnings */}
-            <ClashCheckerAlert clashes={clashes} />
+            {/* Live Clash Warnings - Visible Only to Admins */}
+            {authRole !== 'none' && <ClashCheckerAlert clashes={clashes} />}
 
             {/* Modular Table Cards */}
             <div className="space-y-5">
