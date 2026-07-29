@@ -93,14 +93,14 @@ export default function ControlDock({
                 </button>
               )}
 
-              {/* Reset Button */}
-              <button
+              {/* Reset Button - Hidden per configuration */}
+              {/* <button
                 onClick={() => setActiveModal('reset')}
                 className="p-1.5 rounded-full border border-black/10 dark:border-white/10 bg-[var(--card-bg)] text-[var(--nysc-gold)] hover:bg-[var(--nysc-gold-light)] transition-colors"
                 title="Reset Roster Defaults"
               >
                 <RotateCcw className="w-4 h-4" />
-              </button>
+              </button> */}
             </div>
           )}
 

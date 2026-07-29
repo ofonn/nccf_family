@@ -49,3 +49,17 @@ export interface ClashWarning {
   activityA: { rosterTitle: string; timeStr?: string };
   activityB: { rosterTitle: string; timeStr?: string };
 }
+
+export interface WeeklySnapshot {
+  id: string;
+  weekId: string;
+  weekLabel: string;
+  createdAt: string;
+  isCanon: boolean;
+  rosters: RostersMap;
+}
+
+export interface HistoryPayload {
+  previousSave: RostersMap | null;
+  snapshots: WeeklySnapshot[];
+}

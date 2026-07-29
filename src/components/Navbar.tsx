@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { Sun, Moon, Edit, LogOut, Home, Sparkles, BookOpen, Brush, Utensils, Eye, EyeOff } from 'lucide-react';
+import { Sun, Moon, Edit, LogOut, Home, Sparkles, BookOpen, Brush, Utensils, Eye, EyeOff, History } from 'lucide-react';
 import { useAuth } from '@/lib/authContext';
 import { useTheme } from '@/lib/themeContext';
 
@@ -88,7 +88,7 @@ export default function Navbar() {
             })}
           </div>
 
-          {/* Controls: Theme Toggle & Fixed-Width Auth Slot */}
+          {/* Controls: Theme Toggle, Tucked History Icon & Auth */}
           <div className="flex items-center gap-2">
             <button
               onClick={toggleTheme}
@@ -97,6 +97,17 @@ export default function Navbar() {
             >
               {isDark ? <Sun className="w-4 h-4 text-[var(--nysc-gold)]" /> : <Moon className="w-4 h-4 text-[var(--nysc-green)]" />}
             </button>
+
+            {/* Tucked away History / Archives Link */}
+            <Link
+              href="/history"
+              className={`p-2 rounded-full border border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text-primary)] hover:bg-[var(--nysc-green)]/10 transition-colors ${
+                pathname === '/history' ? 'bg-[var(--nysc-green)]/15 border-[var(--nysc-green)] text-[var(--nysc-green)]' : ''
+              }`}
+              title="Roster Archives & Canon History"
+            >
+              <History className="w-4 h-4 text-[var(--nysc-green)]" />
+            </Link>
 
             {/* Fixed-Width Slot */}
             <div className="min-w-[84px] flex justify-end">

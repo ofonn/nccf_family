@@ -120,18 +120,29 @@ export async function POST(req: NextRequest) {
 
     const newPayload = await req.json();
     const currentData = await loadRostersFromSupabase();
-    let newRosters = currentData.rosters || {};
+    let currentRosters = currentData.rosters || {};
 
+    // Store previous live state for instant rollback capability
+    const previousSave = JSON.parse(JSON.stringify(currentRosters));
+
+    let newRosters = currentRosters;
     if (authLevel === 'master') {
       newRosters = newPayload;
     } else if (authLevel === 'prayer_coordinator') {
-      newRosters.prayer_roster = newPayload.prayer_roster || newRosters.prayer_roster;
-      newRosters.glorious_service = newPayload.glorious_service || newRosters.glorious_service;
-      newRosters.cooking_roster = newPayload.cooking_roster || newRosters.cooking_roster;
-      // cleaning_roster is excluded from prayer_coordinator access
+      newRosters = {
+        ...currentRosters,
+        prayer_roster: newPayload.prayer_roster || currentRosters.prayer_roster,
+        glorious_service: newPayload.glorious_service || currentRosters.glorious_service,
+        cooking_roster: newPayload.cooking_roster || currentRosters.cooking_roster,
+      };
     }
 
-    const fileData = { rosters: newRosters, lastUpdated: new Date().toISOString() };
+    const fileData = {
+      ...currentData,
+      rosters: newRosters,
+      previousSave,
+      lastUpdated: new Date().toISOString()
+    };
     await saveRostersToSupabase(fileData);
 
     return NextResponse.json({ success: true, message: "Rosters saved successfully.", authLevel });
