@@ -2,6 +2,7 @@
 
 import React, { useRef } from 'react';
 import { Notice } from '@/lib/types';
+import { saveCanvasImage } from '@/components/PosterExporter';
 import { Download, Edit, Trash2, Megaphone, CreditCard, DollarSign, AlertTriangle } from 'lucide-react';
 import html2canvas from 'html2canvas';
 
@@ -38,32 +39,11 @@ export default function NoticeCard({ notice, hasEditAccess, onEdit, onDelete }: 
         scale: 2.5,
         useCORS: true,
         allowTaint: true,
-        backgroundColor: null,
+        backgroundColor: '#0B132B',
       });
 
-      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
-      if (!blob) return;
-
       const filename = `NCCF_Notice_${notice.title.replace(/\s+/g, '_')}.png`;
-
-      // iOS Web Share Fallback
-      const isIOS = typeof navigator !== 'undefined' && (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
-      if (isIOS && typeof navigator.share === 'function') {
-        const file = new File([blob], filename, { type: 'image/png' });
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({ files: [file], title: notice.title, text: notice.content });
-          return;
-        }
-      }
-
-      const blobUrl = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.download = filename;
-      link.href = blobUrl;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+      await saveCanvasImage(canvas, filename, notice.title, notice.content);
     } catch (err) {
       console.error("Notice poster export error:", err);
     }

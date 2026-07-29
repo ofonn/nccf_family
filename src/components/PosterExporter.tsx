@@ -4,7 +4,7 @@ import { Roster, RostersMap } from '@/lib/types';
 import html2canvas from 'html2canvas';
 
 // Universal iOS & Desktop compatible download helper
-async function saveCanvasImage(canvas: HTMLCanvasElement, filename: string) {
+export async function saveCanvasImage(canvas: HTMLCanvasElement, filename: string, title?: string, text?: string) {
   const isIOS =
     typeof navigator !== 'undefined' &&
     (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
@@ -30,8 +30,8 @@ async function saveCanvasImage(canvas: HTMLCanvasElement, filename: string) {
       if (navigator.canShare({ files: [file] })) {
         await navigator.share({
           files: [file],
-          title: 'NCCF Roster Schedule',
-          text: 'Official Roster Schedule - NCCF Family House',
+          title: title || 'NCCF Official Notice',
+          text: text || 'NCCF Family House Announcement',
         });
         return;
       }
