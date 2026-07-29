@@ -1,11 +1,12 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Navbar from '@/components/Navbar';
 import RosterCard from '@/components/RosterCard';
 import ClashCheckerAlert from '@/components/ClashCheckerAlert';
 import ControlDock from '@/components/ControlDock';
-import { exportRosterPNG, exportAllRostersPNG } from '@/components/PosterExporter';
+import RosterSelectModal from '@/components/RosterSelectModal';
+import { exportAllRostersPNG } from '@/components/PosterExporter';
 import { RostersMap } from '@/lib/types';
 import { performClashCheck } from '@/lib/clashChecker';
 import { useAuth } from '@/lib/authContext';
@@ -17,6 +18,7 @@ export default function HomePage() {
   const { authRole } = useAuth();
   const { isDark } = useTheme();
   const { rosters, savedRosters, isLoading, handleCellChange } = useRosters();
+  const [isSelectModalOpen, setIsSelectModalOpen] = useState(false);
 
   const clashes = performClashCheck(rosters);
 
@@ -72,8 +74,15 @@ export default function HomePage() {
 
       <ControlDock
         hasEditAccess={authRole !== 'none'}
-        onDownload={() => exportRosterPNG(rosters.prayer_roster, isDark)}
+        onDownload={() => setIsSelectModalOpen(true)}
         onDownloadAll={() => exportAllRostersPNG(rosters, isDark)}
+      />
+
+      <RosterSelectModal
+        isOpen={isSelectModalOpen}
+        onClose={() => setIsSelectModalOpen(false)}
+        rosters={rosters}
+        isDark={isDark}
       />
     </div>
   );
