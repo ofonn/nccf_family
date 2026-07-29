@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useRef } from 'react';
+import React from 'react';
 import { Notice } from '@/lib/types';
-import { saveCanvasImage } from '@/components/PosterExporter';
+import { exportNoticePNG } from '@/components/PosterExporter';
 import { Download, Edit, Trash2, Megaphone, CreditCard, DollarSign, AlertTriangle } from 'lucide-react';
-import html2canvas from 'html2canvas';
 
 interface NoticeCardProps {
   notice: Notice;
@@ -14,8 +13,6 @@ interface NoticeCardProps {
 }
 
 export default function NoticeCard({ notice, hasEditAccess, onEdit, onDelete }: NoticeCardProps) {
-  const posterRef = useRef<HTMLDivElement>(null);
-
   const getCategoryTheme = (category: Notice['category']) => {
     switch (category) {
       case 'Maintenance Dues':
@@ -33,27 +30,13 @@ export default function NoticeCard({ notice, hasEditAccess, onEdit, onDelete }: 
   const CategoryIcon = theme.icon;
 
   const handleDownloadPNG = async () => {
-    if (!posterRef.current) return;
-    try {
-      const canvas = await html2canvas(posterRef.current, {
-        scale: 2.5,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#0B132B',
-      });
-
-      const filename = `NCCF_Notice_${notice.title.replace(/\s+/g, '_')}.png`;
-      await saveCanvasImage(canvas, filename, notice.title, notice.content);
-    } catch (err) {
-      console.error("Notice poster export error:", err);
-    }
+    await exportNoticePNG(notice);
   };
 
   return (
     <div className="w-full max-w-md mx-auto space-y-3">
       {/* Printable Poster Card */}
       <div
-        ref={posterRef}
         className={`relative overflow-hidden rounded-2xl border ${theme.border} bg-gradient-to-br from-[#0B132B] via-[#1C2541] to-[#0B132B] text-white p-5 shadow-2xl font-sans`}
       >
         {/* Subtle Decorative Background Circles */}
