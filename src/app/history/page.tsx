@@ -132,10 +132,10 @@ export default function HistoryPage() {
             <div>
               <h1 className="text-xl sm:text-2xl font-black text-[var(--nysc-green)] tracking-tight flex items-center gap-2">
                 <History className="w-5 h-5" />
-                Roster Archives & Canon History
+                Roster Weekly Archives & History
               </h1>
               <p className="text-[11px] text-[var(--text-muted)] font-medium">
-                Permanent weekly snapshots & live schedule recovery controls
+                Weekly schedule archives & live recovery controls
               </p>
             </div>
           </div>
@@ -175,12 +175,12 @@ export default function HistoryPage() {
           </div>
         )}
 
-        {/* Weekly Canon Snapshots List */}
+        {/* Weekly Roster Archives List */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-black text-[var(--foreground)] uppercase tracking-wider flex items-center gap-2">
               <Calendar className="w-4 h-4 text-[var(--nysc-green)]" />
-              Weekly Canon Snapshots
+              Weekly Roster Archives
             </h2>
             <span className="text-[11px] text-[var(--text-muted)] font-semibold">
               {snapshots.length} week(s) archived
@@ -199,7 +199,7 @@ export default function HistoryPage() {
               <Sparkles className="w-8 h-8 mx-auto text-[var(--nysc-gold)]" />
               <h3 className="text-sm font-bold text-[var(--foreground)]">No History Snapshots Yet</h3>
               <p className="text-xs text-[var(--text-muted)] max-w-sm mx-auto">
-                Weekly canon snapshots are created automatically every Monday morning and locked permanently into the archive.
+                Weekly schedule archives are captured automatically at the start of each week and saved into the archive.
               </p>
             </div>
           ) : (
@@ -224,7 +224,7 @@ export default function HistoryPage() {
                             </h3>
                             <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--nysc-green)]/15 text-[var(--nysc-green)]">
                               <CheckCircle2 className="w-3 h-3" />
-                              Canon Schedule
+                              Official Weekly Roster
                             </span>
                           </div>
                           <p className="text-[10px] text-[var(--text-muted)] font-medium">
