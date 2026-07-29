@@ -12,7 +12,8 @@ export const PREDEFINED_SUGGESTIONS = {
     "Oluchi",
     "Opeyemi",
     "Prince",
-    "Segun"
+    "Segun",
+    "Wale"
   ],
   events: [
     "Morning Prayer",

@@ -22,7 +22,11 @@ interface ActiveCellRef {
 export default function RosterCard({ roster, hasEditAccess, onCellChange, savedRows }: RosterCardProps) {
   const [activeDropdown, setActiveDropdown] = useState<ActiveCellRef | null>(null);
   const [activeInputCell, setActiveInputCell] = useState<{ rowIndex: number; colKey: RosterColumnKey } | null>(null);
-  const clickTimerRef = useRef<{ lastTime: number; timer: NodeJS.Timeout | null }>({ lastTime: 0, timer: null });
+  const clickTimerRef = useRef<{
+    lastTime: number;
+    lastCellKey: string | null;
+    timer: NodeJS.Timeout | null;
+  }>({ lastTime: 0, lastCellKey: null, timer: null });
 
   // Close active dropdown when clicking outside
   useEffect(() => {
@@ -46,31 +50,45 @@ export default function RosterCard({ roster, hasEditAccess, onCellChange, savedR
   const handleCellClick = (e: React.MouseEvent<HTMLTableCellElement>, rowIndex: number, colKey: RosterColumnKey) => {
     if (!hasEditAccess) return;
 
-    // Direct toggle check: if clicking the active dropdown cell, close it immediately!
+    const cellKey = `${rowIndex}_${colKey}`;
+    const now = Date.now();
+    const timeDiff = now - clickTimerRef.current.lastTime;
+    const isSameCell = clickTimerRef.current.lastCellKey === cellKey;
+
+    // Smart double-click check: 2nd click on same cell within 500ms -> Manual input mode
+    if (isSameCell && timeDiff > 40 && timeDiff <= 500 && clickTimerRef.current.timer) {
+      clearTimeout(clickTimerRef.current.timer);
+      clickTimerRef.current = { lastTime: 0, lastCellKey: null, timer: null };
+
+      setActiveDropdown(null);
+      setActiveInputCell({ rowIndex, colKey });
+      return;
+    }
+
+    // Direct toggle check: if clicking an already active dropdown cell, close it
     if (activeDropdown && activeDropdown.rowIndex === rowIndex && activeDropdown.colKey === colKey) {
+      if (clickTimerRef.current.timer) clearTimeout(clickTimerRef.current.timer);
+      clickTimerRef.current = { lastTime: 0, lastCellKey: null, timer: null };
       setActiveDropdown(null);
       return;
     }
 
+    // Cancel any pending timer from previous click
+    if (clickTimerRef.current.timer) {
+      clearTimeout(clickTimerRef.current.timer);
+    }
+
     const targetTd = e.currentTarget;
     const rect = targetTd.getBoundingClientRect();
-    const now = Date.now();
-    const timeDiff = now - clickTimerRef.current.lastTime;
 
-    // Double tap / click (< 350ms) -> Direct typing mode
-    if (timeDiff < 350 && timeDiff > 40) {
-      if (clickTimerRef.current.timer) clearTimeout(clickTimerRef.current.timer);
-      setActiveDropdown(null);
-      setActiveInputCell({ rowIndex, colKey });
-      clickTimerRef.current = { lastTime: 0, timer: null };
-    } else {
-      // Single tap / click -> Toggle option dropdown
-      const timer = setTimeout(() => {
-        setActiveInputCell(null);
-        setActiveDropdown({ rowIndex, colKey, rect });
-      }, 120);
-      clickTimerRef.current = { lastTime: now, timer };
-    }
+    // Schedule single click -> Wait 450ms for potential second click before opening dropdown
+    const timer = setTimeout(() => {
+      setActiveInputCell(null);
+      setActiveDropdown({ rowIndex, colKey, rect });
+      clickTimerRef.current = { lastTime: 0, lastCellKey: null, timer: null };
+    }, 450);
+
+    clickTimerRef.current = { lastTime: now, lastCellKey: cellKey, timer };
   };
 
   const isGroupedByDay = roster.id === 'prayer_roster' || roster.id === 'glorious_service';
