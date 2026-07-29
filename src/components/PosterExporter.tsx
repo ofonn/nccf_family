@@ -164,6 +164,7 @@ export async function exportRosterPNG(roster: Roster, isDark: boolean) {
         <p style="margin: 8px 0 0 0; font-size: 18px; font-weight: 800; color: ${textColor};">
           ${roster.title}
         </p>
+        ${roster.instruction ? `<p style="margin: 8px 0 0 0; font-size: 11.5px; font-weight: 700; color: ${nyscGreen}; background: ${cardBg}; padding: 6px 12px; border-radius: 8px; display: inline-block;">${roster.instruction}</p>` : ''}
       </div>
 
       <!-- Dynamic Tables -->

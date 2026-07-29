@@ -25,6 +25,7 @@ export interface Roster {
   image: string;
   themeClass: string;
   editableBy: 'master' | 'prayer_coordinator';
+  instruction?: string;
   columns: RosterColumn[];
   rows: RosterRow[];
 }
@@ -62,4 +63,15 @@ export interface WeeklySnapshot {
 export interface HistoryPayload {
   previousSave: RostersMap | null;
   snapshots: WeeklySnapshot[];
+}
+
+export interface Notice {
+  id: string;
+  title: string;
+  category: 'Maintenance Dues' | 'Food & Gas' | 'General Notice' | 'Urgent';
+  content: string;
+  amount?: string;
+  accountDetails?: string;
+  createdAt: string;
+  updatedAt?: string;
 }

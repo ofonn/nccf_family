@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { Sun, Moon, Edit, LogOut, Home, Sparkles, BookOpen, Brush, Utensils, Eye, EyeOff, History } from 'lucide-react';
+import { Sun, Moon, Edit, LogOut, Home, Sparkles, BookOpen, Brush, Utensils, Eye, EyeOff, History, Megaphone } from 'lucide-react';
 import { useAuth } from '@/lib/authContext';
 import { useTheme } from '@/lib/themeContext';
 
@@ -37,6 +37,7 @@ export default function Navbar() {
     { href: '/service', label: 'Service', icon: Sparkles },
     { href: '/cleaning', label: 'Cleaning', icon: Brush },
     { href: '/cooking', label: 'Cooking', icon: Utensils },
+    { href: '/notices', label: 'Notices', icon: Megaphone },
   ];
 
   return (

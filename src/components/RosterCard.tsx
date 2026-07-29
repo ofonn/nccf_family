@@ -117,6 +117,13 @@ export default function RosterCard({ roster, hasEditAccess, onCellChange, savedR
         </div>
       </div>
 
+      {/* Roster Instruction Banner */}
+      {roster.instruction && (
+        <div className="mb-3.5 px-3 py-2 rounded-xl bg-[var(--nysc-green)]/10 border border-[var(--nysc-green)]/30 text-[11px] font-bold text-[var(--nysc-green)] flex items-center gap-2">
+          <span>{roster.instruction}</span>
+        </div>
+      )}
+
       {/* Roster Layout Rendering */}
       {!isGroupedByDay ? (
         <RenderTableGroup

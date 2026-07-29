@@ -57,6 +57,7 @@ export const DEFAULT_ROSTERS: RostersMap = {
     image: "/images/prayer_glow.jpg",
     themeClass: "theme-prayer",
     editableBy: "prayer_coordinator",
+    instruction: "🕯️ Please be punctual for your assigned prayer watch. Prepare in spirit to lead the house in prayers.",
     columns: [
       { key: "time", label: "Time", editable: true, isTime: true },
       { key: "event", label: "Event / Theme", editable: true, list: "events" },
@@ -84,6 +85,7 @@ export const DEFAULT_ROSTERS: RostersMap = {
     image: "/images/service_glory.jpg",
     themeClass: "theme-service",
     editableBy: "master",
+    instruction: "✨ All assigned ministers should arrive 15 mins prior. Conduct your ministration with grace & reverence.",
     columns: [
       { key: "time", label: "Time", editable: true, isTime: true },
       { key: "event", label: "Activity / Event", editable: true, list: "events" },
@@ -107,6 +109,7 @@ export const DEFAULT_ROSTERS: RostersMap = {
     image: "/images/clean_vessel.jpg",
     themeClass: "theme-cleaning",
     editableBy: "master",
+    instruction: "🧹 Broom, mop & trash bin are calling our names! Please sweep thoroughly, mop, and empty all trash bins.",
     columns: [
       { key: "person", label: "Assigned Person", editable: true, list: "members" }
     ],
@@ -127,6 +130,7 @@ export const DEFAULT_ROSTERS: RostersMap = {
     image: "/images/service_glory.jpg",
     themeClass: "theme-cooking",
     editableBy: "master",
+    instruction: "🍳 Please clean up the kitchen, wash all cooking utensils, wipe gas stove & dispose trash after cooking.",
     columns: [
       { key: "person", label: "On Duty", editable: true, list: "members" },
       { key: "breakfast", label: "Breakfast", editable: true, list: "foods" },
