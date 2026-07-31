@@ -257,36 +257,80 @@ export default function HistoryPage() {
 
                     {/* Collapsible Roster Preview */}
                     {isExpanded && (
-                      <div className="border-t border-[var(--card-border)] bg-black/5 dark:bg-white/5 p-4 space-y-4">
-                        {(Object.values(snapshot.rosters) as RostersMap[keyof RostersMap][]).map((r) => (
-                          <div key={r.id} className="space-y-1.5">
-                            <h4 className="text-xs font-bold text-[var(--nysc-green)] flex items-center gap-2">
-                              <span>{r.icon}</span> {r.title}
-                            </h4>
-                            <div className="overflow-x-auto rounded-xl border border-[var(--card-border)] bg-[var(--card-bg)] text-xs">
-                              <table className="w-full text-left">
-                                <thead className="bg-[var(--nysc-green)] text-white text-[10px] uppercase font-bold">
-                                  <tr>
-                                    <th className="p-2">Day</th>
-                                    {r.columns.map((c) => (
-                                      <th key={c.key} className="p-2">{c.label}</th>
-                                    ))}
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {r.rows.map((row, idx) => (
-                                    <tr key={idx} className="border-t border-[var(--card-border)]">
-                                      <td className="p-2 font-extrabold text-[var(--nysc-green)]">{row.day}</td>
-                                      {r.columns.map((c) => (
-                                        <td key={c.key} className="p-2 font-medium">{row[c.key] || ''}</td>
-                                      ))}
-                                    </tr>
+                      <div className="border-t border-[var(--card-border)] bg-black/5 dark:bg-white/5 p-4 space-y-5">
+                        {(Object.values(snapshot.rosters) as RostersMap[keyof RostersMap][]).map((r) => {
+                          const isGroupedByDay = r.id === 'prayer_roster' || r.id === 'glorious_service';
+                          const rowsByDay: Record<string, typeof r.rows> = {};
+
+                          if (isGroupedByDay) {
+                            r.rows.forEach((row) => {
+                              const day = row.day || 'General';
+                              if (!rowsByDay[day]) rowsByDay[day] = [];
+                              rowsByDay[day].push(row);
+                            });
+                          }
+
+                          return (
+                            <div key={r.id} className="space-y-2">
+                              <h4 className="text-xs font-bold text-[var(--nysc-green)] flex items-center gap-2">
+                                <span>{r.icon}</span> {r.title}
+                              </h4>
+
+                              {isGroupedByDay ? (
+                                <div className="space-y-2.5">
+                                  {Object.keys(rowsByDay).map((day) => (
+                                    <div key={day} className="overflow-x-auto rounded-xl border border-[var(--card-border)] bg-[var(--card-bg)] text-xs">
+                                      <div className="bg-[var(--nysc-green)]/10 px-3 py-1.5 border-b border-[var(--card-border)] font-black text-[var(--nysc-green)] text-[11px] uppercase tracking-wider">
+                                        {day}
+                                      </div>
+                                      <table className="w-full text-left">
+                                        <thead className="bg-black/5 dark:bg-white/5 text-[var(--text-muted)] text-[10px] uppercase font-bold border-b border-[var(--card-border)]">
+                                          <tr>
+                                            {r.columns.map((c) => (
+                                              <th key={c.key} className="p-2">{c.label}</th>
+                                            ))}
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {rowsByDay[day].map((row, idx) => (
+                                            <tr key={idx} className="border-t border-[var(--card-border)]/50">
+                                              {r.columns.map((c) => (
+                                                <td key={c.key} className="p-2 font-medium">{row[c.key] || ''}</td>
+                                              ))}
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
                                   ))}
-                                </tbody>
-                              </table>
+                                </div>
+                              ) : (
+                                <div className="overflow-x-auto rounded-xl border border-[var(--card-border)] bg-[var(--card-bg)] text-xs">
+                                  <table className="w-full text-left">
+                                    <thead className="bg-[var(--nysc-green)] text-white text-[10px] uppercase font-bold">
+                                      <tr>
+                                        <th className="p-2">Day</th>
+                                        {r.columns.map((c) => (
+                                          <th key={c.key} className="p-2">{c.label}</th>
+                                        ))}
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {r.rows.map((row, idx) => (
+                                        <tr key={idx} className="border-t border-[var(--card-border)]">
+                                          <td className="p-2 font-extrabold text-[var(--nysc-green)]">{row.day}</td>
+                                          {r.columns.map((c) => (
+                                            <td key={c.key} className="p-2 font-medium">{row[c.key] || ''}</td>
+                                          ))}
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              )}
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
