@@ -1,6 +1,7 @@
 'use client';
 
 import { Roster, RostersMap, Notice } from '@/lib/types';
+import { DEFAULT_ROSTERS } from '@/lib/constants';
 import html2canvas from 'html2canvas';
 
 // Universal iOS & Desktop compatible download helper
@@ -140,6 +141,8 @@ export async function exportRosterPNG(roster: Roster, isDark: boolean) {
     });
   }
 
+  const instruction = roster.instruction || DEFAULT_ROSTERS[roster.id as keyof typeof DEFAULT_ROSTERS]?.instruction;
+
   container.innerHTML = `
     <div style="position: relative; background: ${bg}; padding: 36px; border-radius: 20px; border: 2px solid ${nyscGreen}; box-shadow: 0 20px 50px rgba(0,0,0,0.3); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; overflow: hidden;">
       
@@ -164,7 +167,7 @@ export async function exportRosterPNG(roster: Roster, isDark: boolean) {
         <p style="margin: 8px 0 0 0; font-size: 18px; font-weight: 800; color: ${textColor};">
           ${roster.title}
         </p>
-        ${roster.instruction ? `<p style="margin: 8px 0 0 0; font-size: 11.5px; font-weight: 700; color: ${nyscGreen}; background: ${cardBg}; padding: 6px 12px; border-radius: 8px; display: inline-block;">${roster.instruction}</p>` : ''}
+        ${instruction ? `<p style="margin: 10px 0 0 0; font-size: 12.5px; font-weight: 700; color: ${nyscGreen}; background: rgba(16, 185, 129, 0.15); padding: 8px 14px; border-radius: 10px; border: 1px solid rgba(16, 185, 129, 0.3); display: inline-block;">${instruction}</p>` : ''}
       </div>
 
       <!-- Dynamic Tables -->

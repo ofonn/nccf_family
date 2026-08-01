@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Roster, RosterRow, RosterColumnKey } from '@/lib/types';
-import { PREDEFINED_SUGGESTIONS } from '@/lib/constants';
+import { PREDEFINED_SUGGESTIONS, DEFAULT_ROSTERS } from '@/lib/constants';
 import { Check, Edit3, Plus } from 'lucide-react';
 
 interface RosterCardProps {
@@ -118,11 +118,14 @@ export default function RosterCard({ roster, hasEditAccess, onCellChange, savedR
       </div>
 
       {/* Roster Instruction Banner */}
-      {roster.instruction && (
-        <div className="mb-3.5 px-3 py-2 rounded-xl bg-[var(--nysc-green)]/10 border border-[var(--nysc-green)]/30 text-[11px] font-bold text-[var(--nysc-green)] flex items-center gap-2">
-          <span>{roster.instruction}</span>
-        </div>
-      )}
+      {(() => {
+        const instructionText = roster.instruction || DEFAULT_ROSTERS[roster.id as keyof typeof DEFAULT_ROSTERS]?.instruction;
+        return instructionText ? (
+          <div className="mb-3.5 px-3 py-2 rounded-xl bg-[var(--nysc-green)]/10 border border-[var(--nysc-green)]/30 text-[11px] font-bold text-[var(--nysc-green)] flex items-center gap-2">
+            <span>{instructionText}</span>
+          </div>
+        ) : null;
+      })()}
 
       {/* Roster Layout Rendering */}
       {!isGroupedByDay ? (
