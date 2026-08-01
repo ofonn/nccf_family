@@ -167,14 +167,22 @@ export async function exportRosterPNG(roster: Roster, isDark: boolean) {
         <p style="margin: 8px 0 0 0; font-size: 18px; font-weight: 800; color: ${textColor};">
           ${roster.title}
         </p>
-        ${instruction ? `<p style="margin: 10px 0 0 0; font-size: 12.5px; font-weight: 700; color: ${nyscGreen}; background: rgba(16, 185, 129, 0.15); padding: 8px 14px; border-radius: 10px; border: 1px solid rgba(16, 185, 129, 0.3); display: inline-block;">${instruction}</p>` : ''}
       </div>
 
       <!-- Dynamic Tables -->
       ${tablesHTML}
 
+      <!-- Bottom Roster Instruction Banner -->
+      ${instruction ? `
+        <div style="position: relative; z-index: 2; margin-top: 18px; text-align: center;">
+          <div style="font-size: 12px; font-weight: 700; color: ${nyscGreen}; background: rgba(16, 185, 129, 0.12); padding: 10px 16px; border-radius: 12px; border: 1px solid rgba(16, 185, 129, 0.3); display: inline-block; max-width: 92%; line-height: 1.4;">
+            ${instruction}
+          </div>
+        </div>
+      ` : ''}
+
       <!-- Footer -->
-      <div style="position: relative; z-index: 2; margin-top: 24px; text-align: center; border-top: 1px solid ${borderColor}; padding-top: 14px; font-size: 11px; font-weight: 800; color: ${nyscGold}; letter-spacing: 0.5px;">
+      <div style="position: relative; z-index: 2; margin-top: 20px; text-align: center; border-top: 1px solid ${borderColor}; padding-top: 14px; font-size: 11px; font-weight: 800; color: ${nyscGold}; letter-spacing: 0.5px;">
         OFFICIAL PUBLICATION · NCCF FAMILY HOUSE · GENERATED ON ${new Date().toLocaleDateString().toUpperCase()}
       </div>
     </div>
