@@ -90,6 +90,7 @@ export interface WeeklyAllocationMetadata {
   availableMemberIds?: string[];
   generatedAt: string;
   weekStart?: string;
+  mode?: 'weighted' | 'appearances';
   version?: number;
   seed?: string;
   weights?: unknown;
