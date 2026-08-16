@@ -227,6 +227,13 @@ export default function HistoryPage() {
                               <CheckCircle2 className="w-3 h-3" />
                               Official Weekly Roster
                             </span>
+                            {snapshot.allocation && (
+                              <span className="inline-flex items-center rounded-full bg-[var(--nysc-gold)]/15 px-2 py-0.5 text-[10px] font-bold text-[var(--nysc-gold)]">
+                                {snapshot.allocation.mode === 'appearances'
+                                  ? 'Equal appearances'
+                                  : 'Effort-balanced'}
+                              </span>
+                            )}
                           </div>
                           <p className="text-[10px] text-[var(--text-muted)] font-medium">
                             Created: {new Date(snapshot.createdAt).toLocaleString()}

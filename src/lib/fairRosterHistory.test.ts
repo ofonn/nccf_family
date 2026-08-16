@@ -6,10 +6,12 @@ import type { WeeklyAllocationMetadata, WeeklySnapshot } from './types';
 function allocation(
   before: Record<string, { workload: number; cooking: number; cleaning: number }>,
   after: Record<string, { workload: number; cooking: number; cleaning: number }>,
+  mode: 'weighted' | 'appearances' = 'weighted',
 ): WeeklyAllocationMetadata {
   return {
     availableMembers: Object.keys(after),
     generatedAt: '2026-08-16T12:00:00.000Z',
+    mode,
     balancesBefore: before,
     balancesAfter: after,
   };
@@ -74,5 +76,48 @@ describe('selectPriorFairRosterBalances', () => {
       activeAllocation: metadata,
     })).toEqual({});
   });
-});
 
+  it('keeps weighted-point and appearance-count ledgers separate', () => {
+    const weightedAfter = { ada: { workload: 2.5, cooking: 1, cleaning: 0 } };
+    const appearanceAfter = { ada: { workload: -1, cooking: 0, cleaning: 1 } };
+    const snapshots = [
+      snapshot('2026-08-09', allocation({}, weightedAfter, 'weighted')),
+      snapshot('2026-08-16', allocation({}, appearanceAfter, 'appearances')),
+    ];
+
+    expect(selectPriorFairRosterBalances({
+      targetWeekStart: '2026-08-23',
+      mode: 'weighted',
+      snapshots,
+    })).toEqual(weightedAfter);
+    expect(selectPriorFairRosterBalances({
+      targetWeekStart: '2026-08-23',
+      mode: 'appearances',
+      snapshots,
+    })).toEqual(appearanceAfter);
+  });
+
+  it('does not use a same-week ledger created by the other balancing mode', () => {
+    const earlierWeighted = { ada: { workload: 1.5, cooking: 0, cleaning: 0 } };
+    const exactAppearanceBefore = { ada: { workload: -0.5, cooking: 1, cleaning: 0 } };
+    const snapshots = [
+      snapshot('2026-08-09', allocation({}, earlierWeighted, 'weighted')),
+      snapshot('2026-08-16', allocation(
+        exactAppearanceBefore,
+        { ada: { workload: 0.5, cooking: 0, cleaning: 0 } },
+        'appearances',
+      )),
+    ];
+
+    expect(selectPriorFairRosterBalances({
+      targetWeekStart: '2026-08-16',
+      mode: 'weighted',
+      snapshots,
+    })).toEqual(earlierWeighted);
+    expect(selectPriorFairRosterBalances({
+      targetWeekStart: '2026-08-16',
+      mode: 'appearances',
+      snapshots,
+    })).toEqual(exactAppearanceBefore);
+  });
+});

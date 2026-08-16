@@ -14,6 +14,7 @@ import {
   X,
 } from 'lucide-react';
 import type { Participant, RostersMap, WeeklyAllocationMetadata } from '@/lib/types';
+import type { FairRosterMode } from '@/lib/fairRoster';
 import { getCurrentSundayISO, getWeekLabel, normalizeToSundayISO } from '@/lib/rosterCalendar';
 
 export interface GeneratorMemberSummary {
@@ -28,6 +29,7 @@ export interface GeneratorMemberSummary {
 }
 
 export interface RosterGeneratorPreview {
+  mode: FairRosterMode;
   rosters: RostersMap;
   allocation: WeeklyAllocationMetadata;
   memberSummaries: GeneratorMemberSummary[];
@@ -44,6 +46,7 @@ interface RosterGeneratorModalProps {
     availableMembers: Participant[];
     weekStart: string;
     seed: string;
+    mode: FairRosterMode;
   }) => Promise<RosterGeneratorPreview> | RosterGeneratorPreview;
   onApply: (preview: RosterGeneratorPreview, weekStart: string) => void;
 }
@@ -74,6 +77,7 @@ export default function RosterGeneratorModal({
     () => new Set(participants.map((participant) => participant.id)),
   );
   const [weekStart, setWeekStart] = useState(() => getCurrentSundayISO());
+  const [mode, setMode] = useState<FairRosterMode>('weighted');
   const [preview, setPreview] = useState<RosterGeneratorPreview | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -120,6 +124,7 @@ export default function RosterGeneratorModal({
         availableMembers,
         weekStart: normalizedWeek,
         seed: createSeed(),
+        mode,
       });
       setPreview(result);
     } catch (reason) {
@@ -168,6 +173,52 @@ export default function RosterGeneratorModal({
         </header>
 
         <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4 sm:p-5">
+          <section className="space-y-2.5">
+            <h3 className="text-xs font-extrabold uppercase tracking-wide text-[var(--text-muted)]">
+              Balancing method
+            </h3>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <button
+                type="button"
+                aria-pressed={mode === 'weighted'}
+                onClick={() => {
+                  setMode('weighted');
+                  setPreview(null);
+                  setError(null);
+                }}
+                className={`rounded-xl border p-3 text-left transition-colors ${
+                  mode === 'weighted'
+                    ? 'border-[var(--nysc-green)] bg-[var(--nysc-green)]/10'
+                    : 'border-[var(--card-border)] bg-[var(--bg-page)] opacity-70'
+                }`}
+              >
+                <span className="block text-xs font-black text-[var(--text-primary)]">Effort-balanced</span>
+                <span className="mt-1 block text-[10px] font-semibold leading-relaxed text-[var(--text-muted)]">
+                  Uses time and effort points, so heavier duties reduce a person’s remaining load.
+                </span>
+              </button>
+              <button
+                type="button"
+                aria-pressed={mode === 'appearances'}
+                onClick={() => {
+                  setMode('appearances');
+                  setPreview(null);
+                  setError(null);
+                }}
+                className={`rounded-xl border p-3 text-left transition-colors ${
+                  mode === 'appearances'
+                    ? 'border-[var(--nysc-green)] bg-[var(--nysc-green)]/10'
+                    : 'border-[var(--card-border)] bg-[var(--bg-page)] opacity-70'
+                }`}
+              >
+                <span className="block text-xs font-black text-[var(--text-primary)]">Equal appearances</span>
+                <span className="mt-1 block text-[10px] font-semibold leading-relaxed text-[var(--text-muted)]">
+                  Counts every assigned position once, regardless of duration or effort.
+                </span>
+              </button>
+            </div>
+          </section>
+
           <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
             <label className="space-y-1.5">
               <span className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wide text-[var(--text-muted)]">
@@ -270,7 +321,9 @@ export default function RosterGeneratorModal({
                 <div>
                   <h3 className="text-sm font-black text-[var(--nysc-green)]">Fairness preview</h3>
                   <p className="text-[11px] font-semibold text-[var(--text-muted)]">
-                    Index {(preview.fairnessIndex * 100).toFixed(1)}% · load spread {preview.loadRange.toFixed(2)} points
+                    Index {(preview.fairnessIndex * 100).toFixed(1)}% · {preview.mode === 'appearances'
+                      ? `appearance spread ${preview.loadRange.toFixed(0)}`
+                      : `load spread ${preview.loadRange.toFixed(2)} points`}
                   </p>
                 </div>
                 <span className="rounded-full bg-[var(--card-bg)] px-3 py-1 text-[10px] font-black text-[var(--text-muted)] shadow-sm">
@@ -286,7 +339,9 @@ export default function RosterGeneratorModal({
                       <div className="flex items-center justify-between gap-3">
                         <span className="truncate text-xs font-black text-[var(--text-primary)]">{member.name}</span>
                         <span className="shrink-0 text-xs font-black text-[var(--nysc-green)]">
-                          {member.weeklyPoints.toFixed(2)} pts
+                          {preview.mode === 'appearances'
+                            ? `${member.weeklyPoints.toFixed(0)} appearances`
+                            : `${member.weeklyPoints.toFixed(2)} pts`}
                         </span>
                       </div>
                       <p className="mt-1 text-[10px] font-semibold text-[var(--text-muted)]">
@@ -307,7 +362,10 @@ export default function RosterGeneratorModal({
 
         <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--card-border)] p-4 sm:px-5">
           <p className="max-w-sm text-[10px] font-medium text-[var(--text-muted)]">
-            Discussion and Game Night carry zero points. Applying creates an editable draft; it does not publish automatically.
+            {mode === 'appearances'
+              ? 'Every non-Glorious assignment position counts once, including Discussion and Game Night.'
+              : 'Discussion and Game Night carry zero points.'}{' '}
+            Applying creates an editable draft; it does not publish automatically.
           </p>
           <div className="flex gap-2">
             {preview && (

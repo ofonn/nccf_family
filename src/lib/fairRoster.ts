@@ -3,6 +3,8 @@ import { applyWeeklyActivityRules } from './rosterCalendar';
 
 export type FairRosterCategory = 'prayer' | 'cleaning' | 'cooking';
 
+export type FairRosterMode = 'weighted' | 'appearances';
+
 export type FairRosterId = Exclude<keyof RostersMap, 'glorious_service'>;
 
 export interface FairRosterMember {
@@ -37,6 +39,8 @@ export interface FairRosterInput {
   members: FairRosterMember[];
   /** Any date in the target Sunday-to-Saturday week, in YYYY-MM-DD format. */
   weekStart: string;
+  /** Weighted effort is the default; appearances counts every position as one. */
+  mode?: FairRosterMode;
   /** May include absent members; absent entries are copied without alteration. */
   priorBalances?: Record<string, FairRosterBalance>;
   seed?: string;
@@ -96,6 +100,7 @@ export interface FairRosterMetrics {
 
 export interface FairRosterMetadata extends WeeklyAllocationMetadata {
   version: 1;
+  mode: FairRosterMode;
   seed: string;
   weekStart: string;
   /** Human-readable names for history; stable IDs are stored separately below. */
@@ -118,6 +123,7 @@ export interface ReconcileFairRosterInput {
   /** The same selected-availability list used when the draft was generated. */
   members: FairRosterMember[];
   weekStart: string;
+  mode?: FairRosterMode;
   balancesBefore?: Record<string, FairRosterBalance>;
   seed?: string;
   generatedAt?: string;
@@ -140,6 +146,7 @@ export type FairRosterErrorCode =
   | 'INVALID_BALANCE'
   | 'INVALID_GENERATED_AT'
   | 'INVALID_MEMBER'
+  | 'INVALID_MODE'
   | 'INVALID_WEEK'
   | 'INVALID_WEIGHT'
   | 'NOT_ENOUGH_AVAILABLE_MEMBERS';
@@ -228,6 +235,16 @@ type RandomSource = () => number;
 const EPSILON = 1e-9;
 const GAME_NIGHT_TIME = '09:00 PM – 11:00 PM';
 const DISCUSSION_NIGHT_TIME = '08:30 PM – 09:00 PM';
+
+function normalizedMode(value: FairRosterMode | undefined): FairRosterMode {
+  if (value === undefined) return 'weighted';
+  if (value === 'weighted' || value === 'appearances') return value;
+  throw new FairRosterError(
+    'INVALID_MODE',
+    'Roster mode must be either "weighted" or "appearances".',
+    { mode: value },
+  );
+}
 
 function round(value: number, places = 6): number {
   const scale = 10 ** places;
@@ -416,6 +433,7 @@ function buildTasks(
   rosters: RostersMap,
   weekStart: string,
   weights: FairRosterWeights,
+  mode: FairRosterMode,
 ): AllocationTask[] {
   const calendarRosters = applyWeeklyActivityRules(rosters, weekStart);
   const tasks: AllocationTask[] = [];
@@ -430,7 +448,7 @@ function buildTasks(
       time: row.time,
       category: 'prayer',
       assigneeCount: 1,
-      pointsPerMember: prayerEventPoints(row.event, weights),
+      pointsPerMember: mode === 'appearances' ? 1 : prayerEventPoints(row.event, weights),
     });
   });
 
@@ -442,18 +460,20 @@ function buildTasks(
       day: row.day,
       category: 'cleaning',
       assigneeCount: 1,
-      pointsPerMember: weights.cleaning,
+      pointsPerMember: mode === 'appearances' ? 1 : weights.cleaning,
     });
   });
 
   rosters.cooking_roster.rows.forEach((row, rowIndex) => {
     const isSunday = normalizeText(row.day) === 'sunday';
     const isFastingDay = normalizeText(row.breakfast).includes('fasting');
-    const pointsPerMember = isSunday
-      ? weights.cookingSundaySolo
-      : isFastingDay
-        ? weights.cookingPairedFasting
-        : weights.cookingPairedRegular;
+    const pointsPerMember = mode === 'appearances'
+      ? 1
+      : isSunday
+        ? weights.cookingSundaySolo
+        : isFastingDay
+          ? weights.cookingPairedFasting
+          : weights.cookingPairedRegular;
 
     tasks.push({
       id: `cooking_roster:${rowIndex}`,
@@ -1159,6 +1179,7 @@ function finishAllocation(options: {
   members: FairRosterMember[];
   balancesBefore: Record<string, FairRosterBalance>;
   weights: FairRosterWeights;
+  mode: FairRosterMode;
   seed: string;
   canonicalWeek: string;
   generatedAt?: string;
@@ -1170,6 +1191,7 @@ function finishAllocation(options: {
     tasks,
     members,
     weights,
+    mode,
     seed,
     canonicalWeek,
   } = options;
@@ -1202,6 +1224,7 @@ function finishAllocation(options: {
     rosters: applyAssignments(sourceRosters, assignments),
     metadata: {
       version: 1,
+      mode,
       seed,
       weekStart: canonicalWeek,
       availableMembers: [...availableMemberNames],
@@ -1278,7 +1301,8 @@ export function reconcileFairRosterMetadata(
 ): FairRosterResult {
   const members = validateMembers(input.members);
   const weights = normalizedWeights(input.weights);
-  const tasks = buildTasks(input.rosters, input.weekStart, weights);
+  const mode = normalizedMode(input.mode);
+  const tasks = buildTasks(input.rosters, input.weekStart, weights, mode);
   const balancesBefore = validateBalances(input.balancesBefore);
   const minimumMembers = minimumRequiredMembers(tasks);
 
@@ -1314,6 +1338,7 @@ export function reconcileFairRosterMetadata(
     members,
     balancesBefore,
     weights,
+    mode,
     seed,
     canonicalWeek,
     generatedAt: input.generatedAt,
@@ -1321,15 +1346,17 @@ export function reconcileFairRosterMetadata(
 }
 
 /**
- * Produces a weighted weekly allocation. The search is deterministic for the
- * same input and seed. Its lexicographic objective first minimizes the worst
- * current-week deviation, then the load range/variance, historical workload
- * debt, cooking/cleaning rotation debt, and finally duplicate light duties.
+ * Produces an effort-weighted or equal-appearance weekly allocation. The
+ * search is deterministic for the same input and seed. Its lexicographic
+ * objective first minimizes the worst current-week deviation, then the load
+ * range/variance, matching-mode historical debt, cooking/cleaning rotation
+ * debt, and finally duplicate light duties.
  */
 export function generateFairRoster(input: FairRosterInput): FairRosterResult {
   const members = validateMembers(input.members);
   const weights = normalizedWeights(input.weights);
-  const tasks = buildTasks(input.rosters, input.weekStart, weights);
+  const mode = normalizedMode(input.mode);
+  const tasks = buildTasks(input.rosters, input.weekStart, weights, mode);
   const balancesBefore = validateBalances(input.priorBalances);
   const minimumMembers = minimumRequiredMembers(tasks);
   const attempts = input.attempts ?? 12;
@@ -1416,6 +1443,7 @@ export function generateFairRoster(input: FairRosterInput): FairRosterResult {
     members,
     balancesBefore,
     weights,
+    mode,
     seed,
     canonicalWeek,
     generatedAt: input.generatedAt,

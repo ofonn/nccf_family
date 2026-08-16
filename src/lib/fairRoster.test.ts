@@ -175,6 +175,7 @@ describe('generateFairRoster', () => {
     expect(first.fairness.jainIndex).toBeLessThanOrEqual(1);
     expect(first.metadata.availableMembers).toEqual(MEMBERS.slice(0, 10).map(({ name }) => name));
     expect(first.metadata.availableMemberIds).toEqual(MEMBERS.slice(0, 10).map(({ id }) => id));
+    expect(first.metadata.mode).toBe('weighted');
     expect(first.metadata.memberLoads).toEqual(Object.fromEntries(
       first.memberSummaries.map((summary) => [summary.memberId, summary]),
     ));
@@ -290,6 +291,77 @@ describe('generateFairRoster', () => {
     expect(DEFAULT_FAIR_ROSTER_WEIGHTS.cookingSundaySolo).toBe(4);
     expect(DEFAULT_FAIR_ROSTER_WEIGHTS.cookingPairedRegular).toBe(2);
     expect(DEFAULT_FAIR_ROSTER_WEIGHTS.cookingPairedFasting).toBe(1.625);
+  });
+
+  it('can balance purely by appearance count without effort weights', () => {
+    const result = generateFairRoster({
+      rosters: DEFAULT_ROSTERS,
+      members: MEMBERS,
+      weekStart: '2026-08-23',
+      mode: 'appearances',
+      seed: 'equal-appearances',
+      attempts: 8,
+    });
+
+    expect(result.metadata.mode).toBe('appearances');
+    expect(result.fairness.totalPoints).toBe(32);
+    expect(result.fairness.loadRange).toBeLessThanOrEqual(1);
+    // With 32 indivisible positions across 12 people, the mathematical
+    // optimum is eight people on 3 and four people on 2 appearances.
+    expect(result.fairness.jainIndex).toBeGreaterThan(0.96);
+    result.metadata.assignments.forEach((assignment) => {
+      expect(assignment.pointsPerMember).toBe(1);
+      expect(assignment.totalPoints).toBe(assignment.memberIds.length);
+    });
+    result.memberSummaries.forEach((summary) => {
+      expect(summary.weeklyPoints).toBe(summary.assignmentCount);
+    });
+    expect(result.metadata.assignments.find(
+      (assignment) => assignment.event === 'Game Night',
+    )?.pointsPerMember).toBe(1);
+  });
+
+  it.each([3, 4, 6, 9, 12])(
+    'keeps raw appearance totals within one position for %i available members',
+    (memberCount) => {
+      const result = generateFairRoster({
+        rosters: DEFAULT_ROSTERS,
+        members: MEMBERS.slice(0, memberCount),
+        weekStart: '2026-08-16',
+        mode: 'appearances',
+        seed: `appearance-group-${memberCount}`,
+        attempts: 4,
+      });
+
+      expect(result.fairness.totalPoints).toBe(32);
+      expect(result.fairness.loadRange).toBeLessThanOrEqual(1);
+    },
+  );
+
+  it('reconciles manual appearance-mode drafts without converting them to weights', () => {
+    const generated = generateFairRoster({
+      rosters: DEFAULT_ROSTERS,
+      members: MEMBERS.slice(0, 8),
+      weekStart: '2026-08-16',
+      mode: 'appearances',
+      seed: 'appearance-reconciliation',
+      attempts: 4,
+    });
+    const reconciled = reconcileFairRosterMetadata({
+      rosters: generated.rosters,
+      members: MEMBERS.slice(0, 8),
+      weekStart: '2026-08-16',
+      mode: 'appearances',
+      balancesBefore: generated.metadata.balancesBefore,
+      seed: generated.metadata.seed,
+      weights: generated.metadata.weightConfiguration,
+    });
+
+    expect(reconciled.metadata.mode).toBe('appearances');
+    expect(reconciled.fairness.totalPoints).toBe(32);
+    expect(reconciled.memberSummaries.every(
+      (summary) => summary.weeklyPoints === summary.assignmentCount,
+    )).toBe(true);
   });
 });
 

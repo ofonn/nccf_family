@@ -67,7 +67,7 @@ export default function HomePage() {
               <div>
                 <h3 className="text-sm font-black text-[var(--text-primary)]">Fair weekly work sharing</h3>
                 <p className="mt-0.5 max-w-lg text-[11px] font-semibold text-[var(--text-muted)]">
-                  Choose who is available, preview the weighted allocation, then review it before publishing.
+                  Choose who is available, balance by effort or equal appearances, then review before publishing.
                 </p>
               </div>
             </div>
@@ -127,7 +127,7 @@ export default function HomePage() {
           isOpen
           participants={participants}
           onClose={() => setIsGeneratorOpen(false)}
-          onGenerate={async ({ availableMembers, weekStart, seed }): Promise<RosterGeneratorPreview> => {
+          onGenerate={async ({ availableMembers, weekStart, seed, mode }): Promise<RosterGeneratorPreview> => {
             // Yield once so the modal can paint its balancing state before the
             // deterministic local search runs on the browser's main thread.
             await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
@@ -135,11 +135,13 @@ export default function HomePage() {
               rosters,
               members: availableMembers,
               weekStart,
-              priorBalances: getPriorBalancesForWeek(weekStart),
+              mode,
+              priorBalances: getPriorBalancesForWeek(weekStart, mode),
               seed,
               generatedAt: new Date().toISOString(),
             });
             return {
+              mode,
               rosters: result.rosters,
               allocation: result.metadata,
               memberSummaries: result.memberSummaries,

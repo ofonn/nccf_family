@@ -17,6 +17,7 @@ import {
   reconcileFairRosterMetadata,
   type FairRosterBalance,
   type FairRosterMetadata,
+  type FairRosterMode,
   type FairRosterWeights,
 } from '@/lib/fairRoster';
 import { selectPriorFairRosterBalances } from '@/lib/fairRosterHistory';
@@ -54,7 +55,10 @@ interface RostersContextType {
     weekStart: string,
     members: Participant[],
   ) => void;
-  getPriorBalancesForWeek: (weekStart: string) => Record<string, FairRosterBalance>;
+  getPriorBalancesForWeek: (
+    weekStart: string,
+    mode?: FairRosterMode,
+  ) => Record<string, FairRosterBalance>;
   saveChanges: () => Promise<RosterSaveResult>;
   cancelEdits: () => void;
   resetDefaults: () => Promise<boolean>;
@@ -139,6 +143,10 @@ function readWeights(metadata: WeeklyAllocationMetadata): FairRosterWeights | un
     }
   }
   return undefined;
+}
+
+function readMode(metadata: WeeklyAllocationMetadata): FairRosterMode {
+  return metadata.mode === 'appearances' ? 'appearances' : 'weighted';
 }
 
 function memberNameFromMetadata(
@@ -257,9 +265,13 @@ export function RostersProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
-  const getPriorBalancesForWeek = useCallback((weekStart: string) => (
+  const getPriorBalancesForWeek = useCallback((
+    weekStart: string,
+    mode: FairRosterMode = 'weighted',
+  ) => (
     selectPriorFairRosterBalances({
       targetWeekStart: weekStart,
+      mode,
       activeWeekStart,
       activeAllocation,
       snapshots,
@@ -281,6 +293,7 @@ export function RostersProvider({ children }: { children: React.ReactNode }) {
         rosters,
         members: generatedDraft.members,
         weekStart: generatedDraft.weekStart,
+        mode: readMode(metadata),
         balancesBefore: readBalanceRecord(
           metadata.balancesBefore || metadata.previousBalances,
         ),
@@ -303,6 +316,7 @@ export function RostersProvider({ children }: { children: React.ReactNode }) {
       rosters,
       members,
       weekStart: activeWeekStart || getCurrentSundayISO(),
+      mode: readMode(activeAllocation),
       balancesBefore: readBalanceRecord(
         activeAllocation.balancesBefore || activeAllocation.previousBalances,
       ),

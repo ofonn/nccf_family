@@ -1,12 +1,19 @@
 import { normalizeToSundayISO } from './rosterCalendar';
-import type { FairRosterBalance } from './fairRoster';
+import type { FairRosterBalance, FairRosterMode } from './fairRoster';
 import type { WeeklyAllocationMetadata, WeeklySnapshot } from './types';
 
 interface FairRosterHistoryState {
   targetWeekStart: string;
+  mode?: FairRosterMode;
   activeWeekStart?: string;
   activeAllocation?: WeeklyAllocationMetadata | null;
   snapshots?: WeeklySnapshot[];
+}
+
+function allocationMode(
+  metadata: WeeklyAllocationMetadata | null | undefined,
+): FairRosterMode {
+  return metadata?.mode === 'appearances' ? 'appearances' : 'weighted';
 }
 
 function readBalances(
@@ -66,6 +73,7 @@ function cloneBalances(
  */
 export function selectPriorFairRosterBalances({
   targetWeekStart,
+  mode = 'weighted',
   activeWeekStart,
   activeAllocation,
   snapshots = [],
@@ -75,7 +83,7 @@ export function selectPriorFairRosterBalances({
     ? normalizeToSundayISO(activeWeekStart)
     : undefined;
 
-  if (normalizedActiveWeek === target) {
+  if (normalizedActiveWeek === target && allocationMode(activeAllocation) === mode) {
     const exactActive = readBalances(activeAllocation, ['balancesBefore', 'previousBalances']);
     if (exactActive) return cloneBalances(exactActive);
   }
@@ -92,7 +100,7 @@ export function selectPriorFairRosterBalances({
   const exactSnapshot = normalizedSnapshots.find(
     (snapshot) => snapshot.normalizedWeek === target,
   );
-  if (exactSnapshot) {
+  if (exactSnapshot && allocationMode(exactSnapshot.allocation) === mode) {
     const exact = readBalances(exactSnapshot.allocation, ['balancesBefore', 'previousBalances']);
     if (exact) return cloneBalances(exact);
   }
@@ -101,13 +109,22 @@ export function selectPriorFairRosterBalances({
     weekStart: string;
     allocation: WeeklyAllocationMetadata;
   }> = normalizedSnapshots
-    .filter((snapshot) => snapshot.normalizedWeek < target && snapshot.allocation)
+    .filter((snapshot) => (
+      snapshot.normalizedWeek < target
+      && snapshot.allocation
+      && allocationMode(snapshot.allocation) === mode
+    ))
     .map((snapshot) => ({
       weekStart: snapshot.normalizedWeek,
       allocation: snapshot.allocation as WeeklyAllocationMetadata,
     }));
 
-  if (normalizedActiveWeek && normalizedActiveWeek < target && activeAllocation) {
+  if (
+    normalizedActiveWeek
+    && normalizedActiveWeek < target
+    && activeAllocation
+    && allocationMode(activeAllocation) === mode
+  ) {
     priorCandidates.push({ weekStart: normalizedActiveWeek, allocation: activeAllocation });
   }
 

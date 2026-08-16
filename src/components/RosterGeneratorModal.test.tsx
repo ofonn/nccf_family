@@ -15,10 +15,12 @@ const participants: Participant[] = [
 ];
 
 const preview: RosterGeneratorPreview = {
+  mode: 'weighted',
   rosters: DEFAULT_ROSTERS,
   allocation: {
     availableMembers: participants.map((participant) => participant.id),
     generatedAt: '2026-08-16T00:00:00.000Z',
+    mode: 'weighted',
   },
   memberSummaries: participants.map((participant) => ({
     memberId: participant.id,
@@ -41,6 +43,7 @@ describe('RosterGeneratorModal', () => {
       availableMembers: Participant[];
       weekStart: string;
       seed: string;
+      mode: 'weighted' | 'appearances';
     }) => {
       void input;
       return preview;
@@ -69,6 +72,7 @@ describe('RosterGeneratorModal', () => {
     expect(generationInput.availableMembers.map((member) => member.name)).toEqual(['Ada', 'Chidi', 'Dara']);
     expect(generationInput.weekStart).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(generationInput.seed.length).toBeGreaterThan(0);
+    expect(generationInput.mode).toBe('weighted');
 
     fireEvent.click(screen.getByRole('button', { name: 'Apply Draft' }));
     expect(onApply).toHaveBeenCalledWith(preview, generationInput.weekStart);
@@ -97,5 +101,36 @@ describe('RosterGeneratorModal', () => {
     await waitFor(() => {
       expect((screen.getByRole('button', { name: 'Generate' }) as HTMLButtonElement).disabled).toBe(false);
     });
+  });
+
+  it('offers an equal-appearances mode as a separate generation method', async () => {
+    const appearancePreview: RosterGeneratorPreview = {
+      ...preview,
+      mode: 'appearances',
+      allocation: { ...preview.allocation, mode: 'appearances' },
+      memberSummaries: preview.memberSummaries.map((summary) => ({
+        ...summary,
+        weeklyPoints: summary.assignmentCount,
+      })),
+      loadRange: 1,
+    };
+    const onGenerate = vi.fn(() => appearancePreview);
+
+    render(
+      <RosterGeneratorModal
+        isOpen
+        participants={participants}
+        onClose={vi.fn()}
+        onGenerate={onGenerate}
+        onApply={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Equal appearances/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
+
+    await screen.findByText(/appearance spread 1/);
+    expect(onGenerate).toHaveBeenCalledWith(expect.objectContaining({ mode: 'appearances' }));
+    expect(screen.getAllByText(/appearances$/i).length).toBeGreaterThan(0);
   });
 });
