@@ -13,6 +13,7 @@ export default function ParticipantManager() {
     isMutating,
     persistenceAvailable,
     error,
+    refreshParticipants,
     addParticipant,
     removeParticipant,
   } = useParticipants();
@@ -60,7 +61,10 @@ export default function ParticipantManager() {
     <>
       <button
         type="button"
-        onClick={() => setIsOpen(true)}
+        onClick={() => {
+          setIsOpen(true);
+          void refreshParticipants();
+        }}
         className="p-2 rounded-full border border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text-primary)] hover:bg-[var(--nysc-green)]/10 transition-colors"
         title="Manage house members"
         aria-label="Manage house members"
@@ -101,10 +105,19 @@ export default function ParticipantManager() {
               </button>
             </div>
 
-            {!persistenceAvailable && !isLoading && (
-              <p className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-bold text-amber-700 dark:text-amber-300">
-                Database connection is unavailable. Add and remove are disabled.
-              </p>
+            {(!persistenceAvailable || error) && !isLoading && (
+              <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-bold text-amber-700 dark:text-amber-300">
+                <p>
+                  {error || 'Database persistence is not configured. Add and remove are disabled.'}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => void refreshParticipants()}
+                  className="shrink-0 rounded-lg border border-current px-2.5 py-1.5 text-[11px] font-extrabold hover:bg-amber-500/10 disabled:opacity-40"
+                >
+                  Retry
+                </button>
+              </div>
             )}
 
             <form onSubmit={handleAdd} className="mt-4 flex gap-2">
@@ -171,9 +184,6 @@ export default function ParticipantManager() {
               ))}
             </div>
 
-            {error && persistenceAvailable && (
-              <p className="mt-3 text-xs font-bold text-red-500">{error}</p>
-            )}
           </section>
         </div>,
         document.body,
