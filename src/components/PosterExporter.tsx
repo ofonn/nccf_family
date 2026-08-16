@@ -36,9 +36,9 @@ export async function saveCanvasImage(canvas: HTMLCanvasElement, filename: strin
         });
         return;
       }
-    } catch (err: any) {
-      if (err.name === 'AbortError') return; // User closed share sheet
-      console.warn("Web Share failed, using iOS tab fallback:", err);
+    } catch (error: unknown) {
+      if (error instanceof DOMException && error.name === 'AbortError') return; // User closed share sheet
+      console.warn("Web Share failed, using iOS tab fallback:", error);
     }
   }
 
@@ -208,7 +208,11 @@ export async function exportRosterPNG(roster: Roster, isDark: boolean) {
 }
 
 // Export All 4 Rosters in a Single Master Poster Image
-export async function exportAllRostersPNG(rosters: RostersMap, isDark: boolean) {
+export async function exportAllRostersPNG(
+  rosters: RostersMap,
+  isDark: boolean,
+  filename = 'NCCF_Full_Master_Schedule.png',
+) {
   const container = document.createElement('div');
   container.className = 'poster-export-node';
   container.style.position = 'absolute';
@@ -347,7 +351,7 @@ export async function exportAllRostersPNG(rosters: RostersMap, isDark: boolean) 
     });
     document.body.removeChild(container);
 
-    await saveCanvasImage(canvas, `NCCF_Full_Master_Schedule.png`);
+    await saveCanvasImage(canvas, filename);
   } catch (err) {
     console.error("Master poster export error:", err);
     if (document.body.contains(container)) document.body.removeChild(container);
@@ -355,7 +359,7 @@ export async function exportAllRostersPNG(rosters: RostersMap, isDark: boolean) 
 }
 
 // Export Notice Poster as standalone high-res image
-export async function exportNoticePNG(notice: Notice, isDark: boolean = true) {
+export async function exportNoticePNG(notice: Notice) {
   const container = document.createElement('div');
   container.className = 'poster-export-node';
   container.style.position = 'absolute';

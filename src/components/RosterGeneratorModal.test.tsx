@@ -12,6 +12,8 @@ const participants: Participant[] = [
   { id: 'b', name: 'Bola' },
   { id: 'c', name: 'Chidi' },
   { id: 'd', name: 'Dara' },
+  { id: 'e', name: 'Efe' },
+  { id: 'f', name: 'Femi' },
 ];
 
 const preview: RosterGeneratorPreview = {
@@ -49,6 +51,7 @@ describe('RosterGeneratorModal', () => {
       return preview;
     });
     const onApply = vi.fn();
+    const onDownloadPreview = vi.fn();
 
     render(
       <RosterGeneratorModal
@@ -57,10 +60,11 @@ describe('RosterGeneratorModal', () => {
         onClose={vi.fn()}
         onGenerate={onGenerate}
         onApply={onApply}
+        onDownloadPreview={onDownloadPreview}
       />,
     );
 
-    await screen.findByText('4 of 4 selected');
+    await screen.findByText('6 of 6 selected');
     fireEvent.click(screen.getByRole('button', { name: 'Bola' }));
     fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
 
@@ -69,16 +73,21 @@ describe('RosterGeneratorModal', () => {
     const generationInput = onGenerate.mock.calls[0]?.[0];
     expect(generationInput).toBeDefined();
     if (!generationInput) throw new Error('Expected a generator call.');
-    expect(generationInput.availableMembers.map((member) => member.name)).toEqual(['Ada', 'Chidi', 'Dara']);
+    expect(generationInput.availableMembers.map((member) => member.name)).toEqual([
+      'Ada', 'Chidi', 'Dara', 'Efe', 'Femi',
+    ]);
     expect(generationInput.weekStart).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(generationInput.seed.length).toBeGreaterThan(0);
     expect(generationInput.mode).toBe('weighted');
+
+    fireEvent.click(screen.getByRole('button', { name: /Download poster/i }));
+    expect(onDownloadPreview).toHaveBeenCalledWith(preview, generationInput.weekStart);
 
     fireEvent.click(screen.getByRole('button', { name: 'Apply Draft' }));
     expect(onApply).toHaveBeenCalledWith(preview, generationInput.weekStart);
   });
 
-  it('requires three members because paired cooks cannot cover another same-day duty', async () => {
+  it('requires five members for unique cooking teams with rest days', async () => {
     render(
       <RosterGeneratorModal
         isOpen
@@ -89,7 +98,7 @@ describe('RosterGeneratorModal', () => {
       />,
     );
 
-    await screen.findByText('4 of 4 selected');
+    await screen.findByText('6 of 6 selected');
     fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
     fireEvent.click(screen.getByRole('button', { name: 'Ada' }));
     expect((screen.getByRole('button', { name: 'Generate' }) as HTMLButtonElement).disabled).toBe(true);
@@ -98,6 +107,12 @@ describe('RosterGeneratorModal', () => {
     expect((screen.getByRole('button', { name: 'Generate' }) as HTMLButtonElement).disabled).toBe(true);
 
     fireEvent.click(screen.getByRole('button', { name: 'Chidi' }));
+    await waitFor(() => {
+      expect((screen.getByRole('button', { name: 'Generate' }) as HTMLButtonElement).disabled).toBe(true);
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Dara' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Efe' }));
     await waitFor(() => {
       expect((screen.getByRole('button', { name: 'Generate' }) as HTMLButtonElement).disabled).toBe(false);
     });

@@ -235,6 +235,15 @@ type RandomSource = () => number;
 const EPSILON = 1e-9;
 const GAME_NIGHT_TIME = '09:00 PM – 11:00 PM';
 const DISCUSSION_NIGHT_TIME = '08:30 PM – 09:00 PM';
+const WEEKDAY_INDEX: Record<string, number> = {
+  sunday: 0,
+  monday: 1,
+  tuesday: 2,
+  wednesday: 3,
+  thursday: 4,
+  friday: 5,
+  saturday: 6,
+};
 
 function normalizedMode(value: FairRosterMode | undefined): FairRosterMode {
   if (value === undefined) return 'weighted';
@@ -566,7 +575,37 @@ function minimumRequiredMembers(tasks: AllocationTask[]): number {
   }
 
   if (tasks.length > 0 && required === 0) required = 1;
+
+  const pairedCookingDays = tasks
+    .filter((task) => task.category === 'cooking' && task.assigneeCount === 2)
+    .map((task) => weekdayIndex(task.day))
+    .filter((index): index is number => index !== undefined);
+
+  if (pairedCookingDays.some((day) => pairedCookingDays.includes(day + 1))) {
+    // Consecutive two-person cooking shifts need four distinct people.
+    required = Math.max(required, 4);
+  }
+
+  if (pairedCookingDays.some(
+    (day) => pairedCookingDays.includes(day + 1) && pairedCookingDays.includes(day + 2),
+  )) {
+    // With only four people, two disjoint pairs must alternate. A third
+    // consecutive pair would repeat the first team, which this allocator
+    // deliberately forbids.
+    required = Math.max(required, 5);
+  }
+
   return required;
+}
+
+function weekdayIndex(day: string): number | undefined {
+  return WEEKDAY_INDEX[normalizeText(day)];
+}
+
+function areConsecutiveRosterDays(firstDay: string, secondDay: string): boolean {
+  const first = weekdayIndex(firstDay);
+  const second = weekdayIndex(secondDay);
+  return first !== undefined && second !== undefined && Math.abs(first - second) === 1;
 }
 
 function xmur3(seed: string): () => number {
@@ -759,6 +798,31 @@ function isValidMemberAtPosition(
     if (state[otherIndex].includes(memberIndex)) return false;
   }
 
+  for (let otherIndex = 0; otherIndex < tasks.length; otherIndex += 1) {
+    if (otherIndex === taskIndex) continue;
+    const otherTask = tasks[otherIndex];
+    if (otherTask.category !== task.category) continue;
+    if (!areConsecutiveRosterDays(task.day, otherTask.day)) continue;
+    if (state[otherIndex].includes(memberIndex)) return false;
+  }
+
+  if (task.category === 'cooking' && task.assigneeCount === 2) {
+    const cookingPair = state[taskIndex];
+    const hasCompletePair = cookingPair.length === 2 && cookingPair.every((index) => index >= 0);
+    if (hasCompletePair) {
+      const cookingPairKey = [...cookingPair].sort((left, right) => left - right).join(':');
+      for (let otherIndex = 0; otherIndex < tasks.length; otherIndex += 1) {
+        if (otherIndex === taskIndex) continue;
+        const otherTask = tasks[otherIndex];
+        const otherPair = state[otherIndex];
+        if (otherTask.category !== 'cooking' || otherTask.assigneeCount !== 2) continue;
+        if (otherPair.length !== 2 || otherPair.some((index) => index < 0)) continue;
+        const otherPairKey = [...otherPair].sort((left, right) => left - right).join(':');
+        if (otherPairKey === cookingPairKey) return false;
+      }
+    }
+  }
+
   return true;
 }
 
@@ -860,23 +924,56 @@ function createInitialState(
     .map((task, index) => ({ task, index, tie: random() }))
     .filter(({ task }) => task.category === 'cooking')
     .sort((left, right) => (
-      right.task.pointsPerMember - left.task.pointsPerMember || left.tie - right.tie
+      (weekdayIndex(left.task.day) ?? Number.MAX_SAFE_INTEGER)
+        - (weekdayIndex(right.task.day) ?? Number.MAX_SAFE_INTEGER)
+      || right.task.pointsPerMember - left.task.pointsPerMember
+      || left.tie - right.tie
     ))
     .map(({ index }) => index);
 
-  for (const taskIndex of cookingTaskIndexes) {
+  const assignCooking = (cookingPosition: number): boolean => {
+    if (cookingPosition >= cookingTaskIndexes.length) return true;
+    const taskIndex = cookingTaskIndexes[cookingPosition];
     const task = tasks[taskIndex];
-    const candidates = shuffled(combinations(members.length, task.assigneeCount), random).map(
-      (memberIndexes) => {
-        state[taskIndex] = [...memberIndexes];
-        return {
+    const candidates: Array<{ memberIndexes: number[]; score: number[] }> = [];
+
+    for (const memberIndexes of shuffled(combinations(members.length, task.assigneeCount), random)) {
+      state[taskIndex] = [...memberIndexes];
+      const valid = memberIndexes.every((memberIndex, position) => (
+        isValidMemberAtPosition(state, tasks, taskIndex, position, memberIndex)
+      ));
+      if (valid) {
+        candidates.push({
           memberIndexes,
           score: partialCandidateScore(state, tasks, members, priorBalances),
-        };
-      },
+        });
+      }
+      state[taskIndex] = Array.from({ length: task.assigneeCount }, () => -1);
+    }
+
+    candidates.sort((left, right) => compareNumberArrays(left.score, right.score));
+    if (candidates.length === 0) return false;
+    const preferred = chooseCandidate(candidates, attempt, random);
+    const orderedCandidates = [
+      preferred,
+      ...candidates.filter((candidate) => candidate !== preferred),
+    ];
+
+    for (const candidate of orderedCandidates) {
+      state[taskIndex] = [...candidate.memberIndexes];
+      if (assignCooking(cookingPosition + 1)) return true;
+    }
+
+    state[taskIndex] = Array.from({ length: task.assigneeCount }, () => -1);
+    return false;
+  };
+
+  if (!assignCooking(0)) {
+    throw new FairRosterError(
+      'NOT_ENOUGH_AVAILABLE_MEMBERS',
+      'No valid cooking rotation can satisfy the required rest days and unique cooking teams.',
+      { available: members.length, required: minimumRequiredMembers(tasks) },
     );
-    const chosen = chooseCandidate(candidates, attempt, random);
-    state[taskIndex] = [...chosen.memberIndexes];
   }
 
   const remainingTaskIndexes = tasks
@@ -1323,7 +1420,7 @@ export function reconcileFairRosterMetadata(
   if (!stateIsCompleteAndValid(state, tasks, members.length)) {
     throw new FairRosterError(
       'INVALID_ASSIGNMENT',
-      'A cooking assignee also holds another generated duty on the same day.',
+      'This roster breaks a cooking, team-rotation, or same-roster rest-day rule.',
     );
   }
 
@@ -1401,22 +1498,28 @@ export function generateFairRoster(input: FairRosterInput): FairRosterResult {
       attempt,
       random,
     );
-    const candidateState = improveState(
-      initialState,
-      tasks,
-      members,
-      balancesBefore,
-      random,
-    );
-    const candidateScore = scoreAllocation(candidateState, tasks, members, balancesBefore);
+    const candidateScore = scoreAllocation(initialState, tasks, members, balancesBefore);
 
     if (!bestScore || compareScores(candidateScore, bestScore) < 0) {
-      bestState = candidateState;
+      bestState = initialState;
       bestScore = candidateScore;
       equivalentBestCount = 1;
     } else if (compareScores(candidateScore, bestScore) === 0) {
       equivalentBestCount += 1;
-      if (random() < 1 / equivalentBestCount) bestState = candidateState;
+      if (random() < 1 / equivalentBestCount) bestState = initialState;
+    }
+  }
+
+  // Multi-start selection cheaply finds a feasible, well-balanced base. Run
+  // the expensive local improvement once on that best base, rather than once
+  // per seed. This keeps the generator responsive without weakening any hard
+  // cooking or rest-day rule.
+  if (bestState && bestScore) {
+    const improvedState = improveState(bestState, tasks, members, balancesBefore, random);
+    const improvedScore = scoreAllocation(improvedState, tasks, members, balancesBefore);
+    if (compareScores(improvedScore, bestScore) <= 0) {
+      bestState = improvedState;
+      bestScore = improvedScore;
     }
   }
 
