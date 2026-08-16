@@ -11,9 +11,12 @@ interface ParticipantMutationResult {
   error?: string;
 }
 
-interface ParticipantsContextType {
+interface ParticipantsDataContextType {
   participants: Participant[];
   participantNames: string[];
+}
+
+interface ParticipantsManagementContextType {
   isLoading: boolean;
   isMutating: boolean;
   persistenceAvailable: boolean;
@@ -28,9 +31,12 @@ const FALLBACK_PARTICIPANTS: Participant[] = DEFAULT_PARTICIPANT_NAMES.map((name
   name,
 }));
 
-const ParticipantsContext = createContext<ParticipantsContextType>({
+const ParticipantsDataContext = createContext<ParticipantsDataContextType>({
   participants: FALLBACK_PARTICIPANTS,
   participantNames: [...DEFAULT_PARTICIPANT_NAMES],
+});
+
+const ParticipantsManagementContext = createContext<ParticipantsManagementContextType>({
   isLoading: true,
   isMutating: false,
   persistenceAvailable: false,
@@ -160,11 +166,12 @@ export function ParticipantsProvider({ children }: { children: React.ReactNode }
     () => participants.map((participant) => participant.name),
     [participants],
   );
-
-  return (
-    <ParticipantsContext.Provider value={{
-      participants,
-      participantNames,
+  const participantData = useMemo(
+    () => ({ participants, participantNames }),
+    [participantNames, participants],
+  );
+  const participantManagement = useMemo(
+    () => ({
       isLoading,
       isMutating,
       persistenceAvailable,
@@ -172,12 +179,31 @@ export function ParticipantsProvider({ children }: { children: React.ReactNode }
       refreshParticipants,
       addParticipant,
       removeParticipant,
-    }}>
-      {children}
-    </ParticipantsContext.Provider>
+    }),
+    [
+      addParticipant,
+      error,
+      isLoading,
+      isMutating,
+      persistenceAvailable,
+      refreshParticipants,
+      removeParticipant,
+    ],
+  );
+
+  return (
+    <ParticipantsDataContext.Provider value={participantData}>
+      <ParticipantsManagementContext.Provider value={participantManagement}>
+        {children}
+      </ParticipantsManagementContext.Provider>
+    </ParticipantsDataContext.Provider>
   );
 }
 
 export function useParticipants() {
-  return useContext(ParticipantsContext);
+  return useContext(ParticipantsDataContext);
+}
+
+export function useParticipantManagement() {
+  return useContext(ParticipantsManagementContext);
 }
