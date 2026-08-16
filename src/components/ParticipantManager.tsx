@@ -3,12 +3,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Loader2, Plus, Trash2, Users, X } from 'lucide-react';
-import { useParticipants } from '@/lib/participantsContext';
+import { useParticipantManagement, useParticipants } from '@/lib/participantsContext';
 import { useToast } from '@/lib/toastContext';
+import ConfirmModal from '@/components/ConfirmModal';
+import type { Participant } from '@/lib/types';
 
 export default function ParticipantManager() {
+  const { participants } = useParticipants();
   const {
-    participants,
     isLoading,
     isMutating,
     persistenceAvailable,
@@ -16,10 +18,11 @@ export default function ParticipantManager() {
     refreshParticipants,
     addParticipant,
     removeParticipant,
-  } = useParticipants();
+  } = useParticipantManagement();
   const { showToast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState('');
+  const [pendingRemoval, setPendingRemoval] = useState<Participant | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -27,11 +30,13 @@ export default function ParticipantManager() {
     inputRef.current?.focus();
 
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && !isMutating) setIsOpen(false);
+      if (event.key !== 'Escape' || isMutating) return;
+      if (pendingRemoval) setPendingRemoval(null);
+      else setIsOpen(false);
     };
     document.addEventListener('keydown', closeOnEscape);
     return () => document.removeEventListener('keydown', closeOnEscape);
-  }, [isMutating, isOpen]);
+  }, [isMutating, isOpen, pendingRemoval]);
 
   const handleAdd = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -48,10 +53,13 @@ export default function ParticipantManager() {
     }
   };
 
-  const handleRemove = async (id: string, participantName: string) => {
-    const result = await removeParticipant(id);
+  const handleConfirmedRemove = async () => {
+    if (!pendingRemoval) return;
+    const participant = pendingRemoval;
+    setPendingRemoval(null);
+    const result = await removeParticipant(participant.id);
     if (result.success) {
-      showToast(`${participantName} removed from future dropdown choices.`, 'success');
+      showToast(`${participant.name} removed from future dropdown choices.`, 'success');
     } else {
       showToast(result.error || 'Unable to remove the house member.', 'error');
     }
@@ -172,7 +180,7 @@ export default function ParticipantManager() {
                   </span>
                   <button
                     type="button"
-                    onClick={() => void handleRemove(participant.id, participant.name)}
+                    onClick={() => setPendingRemoval(participant)}
                     disabled={!persistenceAvailable || isMutating}
                     className="inline-flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-extrabold text-red-600 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-40 dark:text-red-400"
                     aria-label={`Remove ${participant.name}`}
@@ -188,6 +196,16 @@ export default function ParticipantManager() {
         </div>,
         document.body,
       )}
+
+      <ConfirmModal
+        isOpen={pendingRemoval !== null}
+        title={`Remove ${pendingRemoval?.name || 'house member'}?`}
+        message="This removes the name from future roster dropdowns. Existing roster entries and archived weeks will remain unchanged."
+        confirmText="Remove member"
+        isDangerous
+        onConfirm={() => void handleConfirmedRemove()}
+        onCancel={() => setPendingRemoval(null)}
+      />
     </>
   );
 }
