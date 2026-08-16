@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { Roster, RosterRow, RosterColumnKey } from '@/lib/types';
 import { PREDEFINED_SUGGESTIONS, DEFAULT_ROSTERS } from '@/lib/constants';
 import { Check, Edit3, Plus } from 'lucide-react';
+import { useParticipants } from '@/lib/participantsContext';
 
 interface RosterCardProps {
   roster: Roster;
@@ -20,6 +21,7 @@ interface ActiveCellRef {
 }
 
 export default function RosterCard({ roster, hasEditAccess, onCellChange, savedRows }: RosterCardProps) {
+  const { participantNames } = useParticipants();
   const [activeDropdown, setActiveDropdown] = useState<ActiveCellRef | null>(null);
   const [activeInputCell, setActiveInputCell] = useState<{ rowIndex: number; colKey: RosterColumnKey } | null>(null);
   const clickTimerRef = useRef<{
@@ -139,7 +141,6 @@ export default function RosterCard({ roster, hasEditAccess, onCellChange, savedR
           activeInputCell={activeInputCell}
           onCellClick={handleCellClick}
           onCellChange={onCellChange}
-          setActiveDropdown={setActiveDropdown}
           setActiveInputCell={setActiveInputCell}
           roster={roster}
         />
@@ -157,7 +158,6 @@ export default function RosterCard({ roster, hasEditAccess, onCellChange, savedR
               activeInputCell={activeInputCell}
               onCellClick={handleCellClick}
               onCellChange={onCellChange}
-              setActiveDropdown={setActiveDropdown}
               setActiveInputCell={setActiveInputCell}
               roster={roster}
             />
@@ -179,6 +179,7 @@ export default function RosterCard({ roster, hasEditAccess, onCellChange, savedR
             activeCell={activeDropdown}
             columns={roster.columns}
             currentValue={roster.rows[activeDropdown.rowIndex]?.[activeDropdown.colKey] || ''}
+            participantNames={participantNames}
             onSelect={(newVal) => {
               onCellChange(roster.id, activeDropdown.rowIndex, activeDropdown.colKey, newVal);
               setActiveDropdown(null);
@@ -211,7 +212,6 @@ interface RenderTableGroupProps {
   activeInputCell: { rowIndex: number; colKey: RosterColumnKey } | null;
   onCellClick: (e: React.MouseEvent<HTMLTableCellElement>, rowIndex: number, colKey: RosterColumnKey) => void;
   onCellChange: (rosterId: string, rowIndex: number, colKey: RosterColumnKey, newValue: string) => void;
-  setActiveDropdown: (val: ActiveCellRef | null) => void;
   setActiveInputCell: (val: { rowIndex: number; colKey: RosterColumnKey } | null) => void;
   roster: Roster;
 }
@@ -226,7 +226,6 @@ function RenderTableGroup({
   activeInputCell,
   onCellClick,
   onCellChange,
-  setActiveDropdown,
   setActiveInputCell,
   roster,
 }: RenderTableGroupProps) {
@@ -355,17 +354,20 @@ interface PortalDropdownPopoverProps {
   activeCell: ActiveCellRef;
   columns: Roster['columns'];
   currentValue: string;
+  participantNames: string[];
   onSelect: (val: string) => void;
   onSwitchToInput: () => void;
   onAppendPartner: () => void;
 }
 
-function PortalDropdownPopover({ activeCell, columns, currentValue, onSelect, onSwitchToInput, onAppendPartner }: PortalDropdownPopoverProps) {
+function PortalDropdownPopover({ activeCell, columns, currentValue, participantNames, onSelect, onSwitchToInput, onAppendPartner }: PortalDropdownPopoverProps) {
   const colDef = columns.find(c => c.key === activeCell.colKey);
   const suggestions = new Set<string>();
 
-  if (colDef?.list && PREDEFINED_SUGGESTIONS[colDef.list]) {
-    PREDEFINED_SUGGESTIONS[colDef.list].forEach((s) => suggestions.add(s));
+  if (colDef?.list === 'members') {
+    participantNames.forEach((name) => suggestions.add(name));
+  } else if (colDef?.list && PREDEFINED_SUGGESTIONS[colDef.list]) {
+    PREDEFINED_SUGGESTIONS[colDef.list].forEach((suggestion) => suggestions.add(suggestion));
   }
 
   if (colDef?.isTime) {
@@ -386,7 +388,7 @@ function PortalDropdownPopover({ activeCell, columns, currentValue, onSelect, on
 
   const rect = activeCell.rect;
   const popoverWidth = Math.max(220, rect.width);
-  let top = rect.bottom + window.scrollY + 4;
+  const top = rect.bottom + window.scrollY + 4;
   let left = Math.min(rect.left + window.scrollX, window.innerWidth - popoverWidth - 16);
   left = Math.max(16, left);
 

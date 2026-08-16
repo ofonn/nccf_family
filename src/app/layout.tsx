@@ -4,6 +4,7 @@ import { AuthProvider } from '@/lib/authContext';
 import { ToastProvider } from '@/lib/toastContext';
 import { ThemeProvider } from '@/lib/themeContext';
 import { RostersProvider } from '@/lib/rostersContext';
+import { ParticipantsProvider } from '@/lib/participantsContext';
 
 export const metadata: Metadata = {
   title: 'NCCF Family House Schedules',
@@ -25,11 +26,13 @@ export default function RootLayout({
       <body className="antialiased watermark-bg min-h-screen flex flex-col">
         <ThemeProvider>
           <AuthProvider>
-            <RostersProvider>
-              <ToastProvider>
-                {children}
-              </ToastProvider>
-            </RostersProvider>
+            <ParticipantsProvider>
+              <RostersProvider>
+                <ToastProvider>
+                  {children}
+                </ToastProvider>
+              </RostersProvider>
+            </ParticipantsProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

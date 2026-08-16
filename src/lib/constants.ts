@@ -1,20 +1,22 @@
 import { RostersMap } from './types';
 
+export const DEFAULT_PARTICIPANT_NAMES = [
+  "Chidera",
+  "Christopher",
+  "Judith",
+  "Mimi",
+  "Ofonime",
+  "Ola",
+  "Olayinka",
+  "Oluchi",
+  "Opeyemi",
+  "Prince",
+  "Segun",
+  "Wale"
+] as const;
+
 export const PREDEFINED_SUGGESTIONS = {
-  members: [
-    "Chidera",
-    "Christopher",
-    "Judith",
-    "Mimi",
-    "Ofonime",
-    "Ola",
-    "Olayinka",
-    "Oluchi",
-    "Opeyemi",
-    "Prince",
-    "Segun",
-    "Wale"
-  ],
+  members: [...DEFAULT_PARTICIPANT_NAMES],
   events: [
     "Morning Prayer",
     "Evening Devotional: Hymns",
@@ -23,6 +25,7 @@ export const PREDEFINED_SUGGESTIONS = {
     "Bible Study",
     "Discussion Night",
     "Game Night",
+    "Praise Night",
     "Praise & Worship",
     "Opening Prayer",
     "Testimonies",
@@ -73,9 +76,9 @@ export const DEFAULT_ROSTERS: RostersMap = {
       { day: "Thursday", time: "05:30 AM – 06:00 AM", event: "Morning Prayer", person: "Prince" },
       { day: "Thursday", time: "04:30 PM – 06:00 PM", event: "Bible Study", person: "Judith" },
       { day: "Friday", time: "05:30 AM – 06:00 AM", event: "Morning Prayer", person: "Oluchi" },
-      { day: "Friday", time: "08:30 PM", event: "Discussion Night", person: "Ola" },
+      { day: "Friday", time: "08:30 PM – 09:00 PM", event: "Discussion Night", person: "Ola" },
       { day: "Saturday", time: "05:30 AM – 06:00 AM", event: "Morning Prayer", person: "Chidera" },
-      { day: "Saturday", time: "08:30 PM – 09:00 PM", event: "Praise & Worship", person: "Mimi" }
+      { day: "Saturday", time: "08:30 PM – 09:00 PM", event: "Praise Night", person: "Mimi" }
     ]
   },
   glorious_service: {
@@ -137,13 +140,13 @@ export const DEFAULT_ROSTERS: RostersMap = {
       { key: "dinner", label: "Dinner", editable: true, list: "foods" }
     ],
     rows: [
-      { day: "Sunday", person: "Judith", breakfast: "Jollof Rice", dinner: "Spag Jollof" },
-      { day: "Monday", person: "Opeyemi", breakfast: "Rice & Stew", dinner: "Eba" },
-      { day: "Tuesday", person: "Ola", breakfast: "Fasting (till evening)", dinner: "Moi moi" },
-      { day: "Wednesday", person: "Olayinka", breakfast: "Rice & Beans", dinner: "Amala" },
-      { day: "Thursday", person: "Chidera", breakfast: "Rice & Stew", dinner: "Stew Spaghetti" },
-      { day: "Friday", person: "Mimi", breakfast: "Jollof Spag", dinner: "Beans" },
-      { day: "Saturday", person: "Christopher", breakfast: "Rice & Stew", dinner: "Eba" }
+      { day: "Sunday", person: "Ofonime", breakfast: "Jollof Rice", dinner: "Spag Jollof" },
+      { day: "Monday", person: "Opeyemi & Segun", breakfast: "Rice & Stew", dinner: "Eba" },
+      { day: "Tuesday", person: "Ola & Judith", breakfast: "Fasting (till evening)", dinner: "Moi moi" },
+      { day: "Wednesday", person: "Prince & Oluchi", breakfast: "Rice & Beans", dinner: "Amala" },
+      { day: "Thursday", person: "Chidera & Mimi", breakfast: "Rice & Stew", dinner: "Stew Spaghetti" },
+      { day: "Friday", person: "Segun & Judith", breakfast: "Jollof Spag", dinner: "Beans" },
+      { day: "Saturday", person: "Christopher & Opeyemi", breakfast: "Rice & Stew", dinner: "Eba" }
     ]
   }
 };

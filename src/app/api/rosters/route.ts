@@ -1,153 +1,263 @@
-import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
-import https from 'https';
+import { NextRequest, NextResponse } from 'next/server';
 import { DEFAULT_ROSTERS } from '@/lib/constants';
-
-const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\s+/g, '');
-const SUPABASE_SERVICE_KEY = (process.env.SUPABASE_SERVICE_KEY || '').replace(/\s+/g, '');
+import {
+  normalizeRosterActivities,
+  upsertWeeklySnapshot,
+} from '@/lib/historyManager';
+import {
+  isAllocationMetadata,
+  isRosterPersistenceError,
+  isRostersMap,
+  loadRosterData,
+  saveRosterData,
+} from '@/lib/server/rosterDataStore';
+import type { AuthRole, RostersMap, WeeklyAllocationMetadata } from '@/lib/types';
+import { getCurrentSundayISO, normalizeToSundayISO } from '@/lib/rosterCalendar';
 
 const HASHES = {
-  master: "9d598ba5b4f3fda46daa17f9c0ff96ce72f6c6390a8b0488fcbc2ddd57dcdc0a", // nccfadmin
-  prayer_coordinator: "559cbfb727a428db14c17b3a925c201ac283e3800b3e034f55153077d8d56e29" // nccfprayer
+  master: '9d598ba5b4f3fda46daa17f9c0ff96ce72f6c6390a8b0488fcbc2ddd57dcdc0a',
+  prayer_coordinator: '559cbfb727a428db14c17b3a925c201ac283e3800b3e034f55153077d8d56e29',
 };
 
-function sha256(str: string): string {
-  return crypto.createHash('sha256').update(str).digest('hex');
+interface PublishRostersRequest {
+  rosters: RostersMap;
+  /** Any date in the requested Sunday-to-Saturday week. */
+  weekStart?: string;
+  /** Backwards-compatible alias accepted by early generator prototypes. */
+  targetWeekStart?: string;
+  allocation?: WeeklyAllocationMetadata | null;
 }
 
-// Custom HTTPS request forcing IPv4 to eliminate Node.js 30s IPv6 timeout
-function fetchIPv4(url: string, options: any = {}): Promise<any> {
-  return new Promise((resolve, reject) => {
-    const urlObj = new URL(url);
-    const reqOptions: https.RequestOptions = {
-      hostname: urlObj.hostname,
-      port: urlObj.port || 443,
-      path: urlObj.pathname + urlObj.search,
-      method: options.method || 'GET',
-      headers: options.headers || {},
-      family: 4
-    };
-
-    const req = https.request(reqOptions, (res) => {
-      let body = '';
-      res.on('data', chunk => body += chunk);
-      res.on('end', () => {
-        try {
-          const json = JSON.parse(body);
-          resolve({ ok: res.statusCode! >= 200 && res.statusCode! < 300, status: res.statusCode, json: () => json, text: () => body });
-        } catch {
-          resolve({ ok: res.statusCode! >= 200 && res.statusCode! < 300, status: res.statusCode, json: () => null, text: () => body });
-        }
-      });
-    });
-
-    req.on('error', reject);
-    if (options.body) req.write(options.body);
-    req.end();
-  });
+interface ParsedPublishRequest {
+  rosters: RostersMap;
+  requestedWeekStart?: string;
+  allocation: WeeklyAllocationMetadata | null;
 }
 
-async function loadRostersFromSupabase() {
-  if (SUPABASE_URL && SUPABASE_SERVICE_KEY) {
-    try {
-      const res = await fetchIPv4(`${SUPABASE_URL}/rest/v1/rosters_data?id=eq.1&select=data`, {
-        headers: {
-          'apikey': SUPABASE_SERVICE_KEY,
-          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`
-        }
-      });
-      const data = await res.json();
-      if (data && data.length > 0 && data[0].data && data[0].data.rosters) {
-        return data[0].data;
-      }
-    } catch (e) {
-      console.error("Supabase fetch failed, fallback to defaults:", e);
-    }
+function sha256(value: string): string {
+  return crypto.createHash('sha256').update(value).digest('hex');
+}
+
+function getAuthRole(request: NextRequest): Exclude<AuthRole, 'none'> | null {
+  const passwordHash = sha256(request.headers.get('x-auth-password') || '');
+  if (passwordHash === HASHES.master) return 'master';
+  if (passwordHash === HASHES.prayer_coordinator) return 'prayer_coordinator';
+  return null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function parsePublishRequest(value: unknown): ParsedPublishRequest | null {
+  // Keep the existing raw RostersMap request working. A raw save has no
+  // allocator metadata, so any stale active calculation is deliberately reset.
+  if (isRostersMap(value)) {
+    return { rosters: value, allocation: null };
   }
-  return { rosters: DEFAULT_ROSTERS, lastUpdated: new Date().toISOString() };
+
+  if (!isRecord(value) || !isRostersMap(value.rosters)) return null;
+
+  const envelope = value as unknown as PublishRostersRequest;
+  const requestedWeekStart = envelope.weekStart || envelope.targetWeekStart;
+  if (requestedWeekStart !== undefined && typeof requestedWeekStart !== 'string') {
+    return null;
+  }
+
+  if (
+    envelope.allocation !== undefined &&
+    envelope.allocation !== null &&
+    !isAllocationMetadata(envelope.allocation)
+  ) {
+    return null;
+  }
+
+  return {
+    rosters: envelope.rosters,
+    requestedWeekStart,
+    allocation: envelope.allocation || null,
+  };
 }
 
-async function saveRostersToSupabase(payload: any) {
-  if (SUPABASE_URL && SUPABASE_SERVICE_KEY) {
-    const res = await fetchIPv4(`${SUPABASE_URL}/rest/v1/rosters_data?id=eq.1`, {
-      method: 'PATCH',
-      headers: {
-        'apikey': SUPABASE_SERVICE_KEY,
-        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=minimal'
-      },
-      body: JSON.stringify({ data: payload, updated_at: new Date().toISOString() })
-    });
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`Supabase PATCH failed: ${res.status} ${errText}`);
-    }
+function mergeAuthorizedRosters(
+  currentRosters: RostersMap,
+  requestedRosters: RostersMap,
+  authRole: Exclude<AuthRole, 'none'>,
+): RostersMap {
+  if (authRole === 'master') return structuredClone(requestedRosters);
+
+  return {
+    ...structuredClone(currentRosters),
+    prayer_roster: structuredClone(requestedRosters.prayer_roster),
+    glorious_service: structuredClone(requestedRosters.glorious_service),
+    cooking_roster: structuredClone(requestedRosters.cooking_roster),
+  };
+}
+
+function persistenceErrorResponse(error: unknown) {
+  if (isRosterPersistenceError(error)) {
+    return NextResponse.json(
+      { error: error.message, code: error.code },
+      { status: error.status },
+    );
   }
+
+  console.error('Roster API error:', error);
+  return NextResponse.json({ error: 'Failed to process roster request.' }, { status: 500 });
 }
 
 export async function GET() {
-  const data = await loadRostersFromSupabase();
-  return NextResponse.json(data, {
-    headers: {
-      'Cache-Control': 'no-store, no-cache, must-revalidate'
-    }
-  });
+  try {
+    const data = await loadRosterData();
+    return NextResponse.json(data, {
+      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
+    });
+  } catch (error) {
+    return persistenceErrorResponse(error);
+  }
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
+  const authRole = getAuthRole(request);
+  if (!authRole) {
+    return NextResponse.json(
+      { error: 'Unauthorized access. Invalid password.' },
+      { status: 401 },
+    );
+  }
+
   try {
-    const password = req.headers.get('x-auth-password') || '';
-    const actionHeader = req.headers.get('x-action') || '';
-    const inputHash = sha256(password);
+    const currentData = await loadRosterData();
+    const action = request.headers.get('x-action') || '';
 
-    let authLevel: 'master' | 'prayer_coordinator' | null = null;
-    if (inputHash === HASHES.master) authLevel = 'master';
-    else if (inputHash === HASHES.prayer_coordinator) authLevel = 'prayer_coordinator';
-
-    if (!authLevel) {
-      return NextResponse.json({ error: "Unauthorized access. Invalid password." }, { status: 401 });
-    }
-
-    if (actionHeader === 'reset') {
-      if (authLevel !== 'master') {
-        return NextResponse.json({ error: "Forbidden. Only Master Admin can reset schedules." }, { status: 403 });
+    if (action === 'reset') {
+      if (authRole !== 'master') {
+        return NextResponse.json(
+          { error: 'Forbidden. Only Master Admin can reset schedules.' },
+          { status: 403 },
+        );
       }
-      const resetData = { rosters: DEFAULT_ROSTERS, lastUpdated: new Date().toISOString() };
-      await saveRostersToSupabase(resetData);
-      return NextResponse.json({ success: true, message: "Rosters reset to defaults." });
+
+      const weekStart = getCurrentSundayISO();
+      if (currentData.activeWeekStart && currentData.activeWeekStart !== weekStart) {
+        currentData.snapshots = upsertWeeklySnapshot(
+          currentData.snapshots,
+          currentData.rosters,
+          {
+            weekStart: currentData.activeWeekStart,
+            allocation: currentData.activeAllocation || null,
+          },
+        );
+      }
+
+      const resetRosters = normalizeRosterActivities(DEFAULT_ROSTERS, weekStart);
+      currentData.previousSave = structuredClone(currentData.rosters);
+      currentData.previousSaveWeekStart = currentData.activeWeekStart;
+      currentData.previousSaveWeekId = currentData.activeWeekId;
+      currentData.previousSaveAllocation = currentData.activeAllocation || null;
+      currentData.rosters = resetRosters;
+      currentData.activeWeekStart = weekStart;
+      currentData.activeWeekId = weekStart;
+      currentData.activeAllocation = null;
+      currentData.snapshots = upsertWeeklySnapshot(
+        currentData.snapshots,
+        resetRosters,
+        { weekStart, allocation: null },
+      );
+
+      const saved = await saveRosterData(currentData);
+      return NextResponse.json({
+        success: true,
+        message: 'Rosters reset to defaults.',
+        rosters: saved.rosters,
+        activeWeekId: saved.activeWeekId,
+        activeWeekStart: saved.activeWeekStart,
+        activeAllocation: saved.activeAllocation || null,
+      });
     }
 
-    const newPayload = await req.json();
-    const currentData = await loadRostersFromSupabase();
-    let currentRosters = currentData.rosters || {};
-
-    // Store previous live state for instant rollback capability
-    const previousSave = JSON.parse(JSON.stringify(currentRosters));
-
-    let newRosters = currentRosters;
-    if (authLevel === 'master') {
-      newRosters = newPayload;
-    } else if (authLevel === 'prayer_coordinator') {
-      newRosters = {
-        ...currentRosters,
-        prayer_roster: newPayload.prayer_roster || currentRosters.prayer_roster,
-        glorious_service: newPayload.glorious_service || currentRosters.glorious_service,
-        cooking_roster: newPayload.cooking_roster || currentRosters.cooking_roster,
-      };
+    let requestJson: unknown;
+    try {
+      requestJson = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Request body must be valid JSON.' }, { status: 400 });
     }
 
-    const fileData = {
-      ...currentData,
-      rosters: newRosters,
-      previousSave,
-      lastUpdated: new Date().toISOString()
-    };
-    await saveRostersToSupabase(fileData);
+    const publish = parsePublishRequest(requestJson);
+    if (!publish) {
+      return NextResponse.json(
+        {
+          error:
+            'Invalid roster payload. Send a RostersMap or { rosters, weekStart, allocation }.',
+        },
+        { status: 400 },
+      );
+    }
 
-    return NextResponse.json({ success: true, message: "Rosters saved successfully.", authLevel });
-  } catch (e: any) {
-    console.error("Save API error:", e);
-    return NextResponse.json({ error: `Failed to save request: ${e.message}` }, { status: 500 });
+    let weekStart: string;
+    try {
+      weekStart = normalizeToSundayISO(
+        publish.requestedWeekStart || getCurrentSundayISO(),
+      );
+    } catch {
+      return NextResponse.json(
+        { error: 'weekStart must be a valid date in YYYY-MM-DD format.' },
+        { status: 400 },
+      );
+    }
+
+    // Complete the outgoing archive before switching the active target week.
+    if (currentData.activeWeekStart && currentData.activeWeekStart !== weekStart) {
+      currentData.snapshots = upsertWeeklySnapshot(
+        currentData.snapshots,
+        currentData.rosters,
+        {
+          weekStart: currentData.activeWeekStart,
+          allocation: currentData.activeAllocation || null,
+        },
+      );
+    }
+
+    const mergedRosters = mergeAuthorizedRosters(
+      currentData.rosters,
+      publish.rosters,
+      authRole,
+    );
+    const publishedRosters = normalizeRosterActivities(mergedRosters, weekStart);
+    // The generator UI remains master-only, but a prayer coordinator may edit
+    // an already-generated prayer/cooking roster. Its client reconciles the
+    // workload metadata so the long-term carry-over ledger is not erased.
+    const allocation = publish.allocation;
+
+    currentData.previousSave = structuredClone(currentData.rosters);
+    currentData.previousSaveWeekStart = currentData.activeWeekStart;
+    currentData.previousSaveWeekId = currentData.activeWeekId;
+    currentData.previousSaveAllocation = currentData.activeAllocation || null;
+    currentData.rosters = publishedRosters;
+    currentData.activeWeekStart = weekStart;
+    currentData.activeWeekId = weekStart;
+    currentData.activeAllocation = allocation;
+    currentData.snapshots = upsertWeeklySnapshot(
+      currentData.snapshots,
+      publishedRosters,
+      { weekStart, allocation },
+    );
+
+    const saved = await saveRosterData(currentData);
+    const snapshot = saved.snapshots.find((item) => item.weekId === weekStart);
+
+    return NextResponse.json({
+      success: true,
+      message: 'Rosters and weekly history saved successfully.',
+      authLevel: authRole,
+      rosters: saved.rosters,
+      activeWeekId: saved.activeWeekId,
+      activeWeekStart: saved.activeWeekStart,
+      activeAllocation: saved.activeAllocation || null,
+      snapshot,
+    });
+  } catch (error) {
+    return persistenceErrorResponse(error);
   }
 }

@@ -33,6 +33,10 @@ export function performClashCheck(rosters: RostersMap): ClashWarning[] {
 
   // 1. Collect all duty items grouped by Day
   (Object.values(rosters) as Roster[]).forEach((roster) => {
+    // Glorious Service is intentionally outside automated workload sharing
+    // and must not influence availability/clash decisions for generated work.
+    if (roster.id === 'glorious_service') return;
+
     const isCooking = roster.id === 'cooking_roster';
 
     roster.rows.forEach((row: RosterRow) => {
@@ -62,10 +66,9 @@ export function performClashCheck(rosters: RostersMap): ClashWarning[] {
     });
   });
 
-  // 2. Check for overlaps per day (excluding Sunday)
+  // 2. Check for overlaps per day. Sunday cleaning and cooking still clash;
+  // only the Glorious Service roster itself is exempt.
   Object.keys(daySchedule).forEach(day => {
-    if (day === 'Sunday') return; // Exempt Sundays
-
     const items = daySchedule[day];
 
     for (let i = 0; i < items.length; i++) {

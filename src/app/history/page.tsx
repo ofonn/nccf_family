@@ -6,7 +6,6 @@ import Navbar from '@/components/Navbar';
 import ConfirmModal from '@/components/ConfirmModal';
 import { WeeklySnapshot, RostersMap } from '@/lib/types';
 import { useAuth } from '@/lib/authContext';
-import { useTheme } from '@/lib/themeContext';
 import { useToast } from '@/lib/toastContext';
 import { useRosters } from '@/lib/rostersContext';
 import {
@@ -24,7 +23,6 @@ import {
 
 export default function HistoryPage() {
   const { authRole, authPassword } = useAuth();
-  const { isDark } = useTheme();
   const { showToast } = useToast();
   const { refreshRosters } = useRosters();
 
@@ -56,7 +54,10 @@ export default function HistoryPage() {
   };
 
   useEffect(() => {
-    fetchHistory();
+    const timeoutId = window.setTimeout(() => {
+      void fetchHistory();
+    }, 0);
+    return () => window.clearTimeout(timeoutId);
   }, []);
 
   const handleRollback = async () => {
@@ -79,7 +80,7 @@ export default function HistoryPage() {
       } else {
         showToast(data.error || 'Failed to revert schedule.', 'error');
       }
-    } catch (err) {
+    } catch {
       showToast('Error connecting to server.', 'error');
     } finally {
       setIsProcessing(false);
@@ -107,7 +108,7 @@ export default function HistoryPage() {
       } else {
         showToast(data.error || 'Failed to apply snapshot.', 'error');
       }
-    } catch (err) {
+    } catch {
       showToast('Error connecting to server.', 'error');
     } finally {
       setIsProcessing(false);
@@ -199,7 +200,7 @@ export default function HistoryPage() {
               <Sparkles className="w-8 h-8 mx-auto text-[var(--nysc-gold)]" />
               <h3 className="text-sm font-bold text-[var(--foreground)]">No History Snapshots Yet</h3>
               <p className="text-xs text-[var(--text-muted)] max-w-sm mx-auto">
-                Weekly schedule archives are captured automatically at the start of each week and saved into the archive.
+                An archive is created when an administrator publishes a roster for its selected week.
               </p>
             </div>
           ) : (
