@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   CalendarDays,
   Check,
+  Download,
   Loader2,
   RefreshCw,
   Scale,
@@ -49,6 +50,7 @@ interface RosterGeneratorModalProps {
     mode: FairRosterMode;
   }) => Promise<RosterGeneratorPreview> | RosterGeneratorPreview;
   onApply: (preview: RosterGeneratorPreview, weekStart: string) => void;
+  onDownloadPreview?: (preview: RosterGeneratorPreview, weekStart: string) => void;
 }
 
 function createSeed(): string {
@@ -72,6 +74,7 @@ export default function RosterGeneratorModal({
   onClose,
   onGenerate,
   onApply,
+  onDownloadPreview,
 }: RosterGeneratorModalProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(
     () => new Set(participants.map((participant) => participant.id)),
@@ -110,8 +113,8 @@ export default function RosterGeneratorModal({
   };
 
   const runGeneration = async () => {
-    if (availableMembers.length < 3) {
-      setError('Select at least three available members: two weekday cooking partners plus one person for another same-day duty.');
+    if (availableMembers.length < 5) {
+      setError('Select at least five available members. The weekly cooking rotation needs unique teams and a rest day between cooking shifts.');
       return;
     }
 
@@ -306,6 +309,9 @@ export default function RosterGeneratorModal({
                 );
               })}
             </div>
+            <p className="text-[10px] font-medium text-[var(--text-muted)]">
+              Choose at least five people. Cooking teams never repeat; within prayer, cleaning, and cooking, each person gets a day off before the next duty.
+            </p>
           </section>
 
           {error && (
@@ -326,9 +332,20 @@ export default function RosterGeneratorModal({
                       : `load spread ${preview.loadRange.toFixed(2)} points`}
                   </p>
                 </div>
-                <span className="rounded-full bg-[var(--card-bg)] px-3 py-1 text-[10px] font-black text-[var(--text-muted)] shadow-sm">
-                  Cooking: Sunday 1 · Mon–Sat 2
-                </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-[var(--card-bg)] px-3 py-1 text-[10px] font-black text-[var(--text-muted)] shadow-sm">
+                    Cooking: Sunday 1 · Mon–Sat 2
+                  </span>
+                  {onDownloadPreview && (
+                    <button
+                      type="button"
+                      onClick={() => onDownloadPreview(preview, normalizeToSundayISO(weekStart))}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-[var(--card-border)] bg-[var(--card-bg)] px-3 py-1 text-[10px] font-black text-[var(--nysc-green)] shadow-sm hover:bg-[var(--nysc-green)]/10"
+                    >
+                      <Download className="h-3.5 w-3.5" /> Download poster
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="grid gap-2 sm:grid-cols-2">
@@ -384,7 +401,7 @@ export default function RosterGeneratorModal({
                 if (preview) onApply(preview, normalizeToSundayISO(weekStart));
                 else void runGeneration();
               }}
-              disabled={isGenerating || availableMembers.length < 3}
+              disabled={isGenerating || availableMembers.length < 5}
               className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--nysc-green)] px-4 py-2 text-xs font-extrabold text-white shadow-sm hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {isGenerating ? (

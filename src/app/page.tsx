@@ -164,6 +164,18 @@ export default function HomePage() {
             setIsGeneratorOpen(false);
             showToast('Fair roster applied as a draft. Review it, then press Save to publish.', 'info');
           }}
+          onDownloadPreview={(preview, weekStart) => {
+            const modeLabel = preview.mode === 'appearances' ? 'Equal_Appearances' : 'Effort_Balanced';
+            const seed = typeof preview.allocation.seed === 'string'
+              ? preview.allocation.seed.replace(/[^a-z0-9]/gi, '').slice(0, 8)
+              : 'candidate';
+            showToast('Preparing this candidate roster poster. Nothing has been saved.', 'info');
+            void exportAllRostersPNG(
+              preview.rosters,
+              isDark,
+              `NCCF_${modeLabel}_${weekStart}_${seed}.png`,
+            );
+          }}
         />
       )}
     </div>

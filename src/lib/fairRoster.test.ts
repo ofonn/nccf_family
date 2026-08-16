@@ -38,6 +38,48 @@ function zeroBalance(overrides: Partial<FairRosterBalance> = {}): FairRosterBala
   return { workload: 0, cooking: 0, cleaning: 0, ...overrides };
 }
 
+const WEEK_DAY_INDEX: Record<string, number> = {
+  sunday: 0,
+  monday: 1,
+  tuesday: 2,
+  wednesday: 3,
+  thursday: 4,
+  friday: 5,
+  saturday: 6,
+};
+
+function assertFairRosterSpacing(result: ReturnType<typeof generateFairRoster>) {
+  const assignmentsByCategory = new Map<string, typeof result.metadata.assignments>();
+
+  result.metadata.assignments.forEach((assignment) => {
+    const assignments = assignmentsByCategory.get(assignment.category) ?? [];
+    assignments.push(assignment);
+    assignmentsByCategory.set(assignment.category, assignments);
+  });
+
+  assignmentsByCategory.forEach((assignments, category) => {
+    const dutyDaysByMember = new Map<string, Set<number>>();
+    assignments.forEach((assignment) => {
+      const dayIndex = WEEK_DAY_INDEX[assignment.day.toLocaleLowerCase()];
+      expect(dayIndex).toBeDefined();
+      assignment.memberIds.forEach((memberId) => {
+        const days = dutyDaysByMember.get(memberId) ?? new Set<number>();
+        days.add(dayIndex);
+        dutyDaysByMember.set(memberId, days);
+      });
+    });
+
+    dutyDaysByMember.forEach((days, memberId) => {
+      [...days].forEach((day) => {
+        expect(
+          days.has(day + 1),
+          `${memberId} was assigned ${category} on consecutive days`,
+        ).toBe(false);
+      });
+    });
+  });
+}
+
 describe('generateFairRoster', () => {
   it('obeys cooking cardinality, availability, Friday, service, and clash invariants', () => {
     const source = structuredClone(DEFAULT_ROSTERS);
@@ -181,7 +223,7 @@ describe('generateFairRoster', () => {
     ));
   });
 
-  it.each([3, 4, 6, 9, 12])(
+  it.each([5, 6, 9, 12])(
     'remains valid and highly weighted-fair with %i currently available members',
     (memberCount) => {
       const available = MEMBERS.slice(0, memberCount);
@@ -274,18 +316,21 @@ describe('generateFairRoster', () => {
     ).toBeCloseTo(0, 6);
   });
 
-  it('reports an explicit infeasibility when two people cannot cover paired cooking plus duties', () => {
-    expect(() => generateFairRoster({
-      rosters: DEFAULT_ROSTERS,
-      members: MEMBERS.slice(0, 2),
-      weekStart: '2026-08-16',
-      seed: 'too-small',
-    })).toThrowError(expect.objectContaining({
-      name: 'FairRosterError',
-      code: 'NOT_ENOUGH_AVAILABLE_MEMBERS',
-      details: { available: 2, required: 3 },
-    }));
-  });
+  it.each([2, 3, 4])(
+    'reports an explicit infeasibility when %i people cannot cover the required cooking rotation',
+    (memberCount) => {
+      expect(() => generateFairRoster({
+        rosters: DEFAULT_ROSTERS,
+        members: MEMBERS.slice(0, memberCount),
+        weekStart: '2026-08-16',
+        seed: `too-small-${memberCount}`,
+      })).toThrowError(expect.objectContaining({
+        name: 'FairRosterError',
+        code: 'NOT_ENOUGH_AVAILABLE_MEMBERS',
+        details: { available: memberCount, required: 5 },
+      }));
+    },
+  );
 
   it('uses half of the original cooking burden per partner while keeping Sunday solo high', () => {
     expect(DEFAULT_FAIR_ROSTER_WEIGHTS.cookingSundaySolo).toBe(4);
@@ -321,7 +366,7 @@ describe('generateFairRoster', () => {
     )?.pointsPerMember).toBe(1);
   });
 
-  it.each([3, 4, 6, 9, 12])(
+  it.each([5, 6, 9, 12])(
     'keeps raw appearance totals within one position for %i available members',
     (memberCount) => {
       const result = generateFairRoster({
@@ -335,6 +380,44 @@ describe('generateFairRoster', () => {
 
       expect(result.fairness.totalPoints).toBe(32);
       expect(result.fairness.loadRange).toBeLessThanOrEqual(1);
+    },
+  );
+
+  it.each(['weighted', 'appearances'] as const)(
+    'never repeats a Monday–Saturday cooking pair in %s mode',
+    (mode) => {
+      const result = generateFairRoster({
+        rosters: DEFAULT_ROSTERS,
+        members: MEMBERS,
+        weekStart: '2026-08-16',
+        mode,
+        seed: `unique-cooking-pairs-${mode}`,
+        attempts: 12,
+      });
+      const pairs = result.metadata.assignments
+        .filter((assignment) => assignment.category === 'cooking' && assignment.day !== 'Sunday')
+        .map((assignment) => [...assignment.memberIds].sort().join(':'));
+
+      expect(pairs).toHaveLength(6);
+      expect(new Set(pairs).size).toBe(pairs.length);
+    },
+  );
+
+  it.each(['weighted', 'appearances'] as const)(
+    'keeps each person’s duties at least one calendar day apart within each category in %s mode',
+    (mode) => {
+      const result = generateFairRoster({
+        rosters: DEFAULT_ROSTERS,
+        members: MEMBERS,
+        weekStart: '2026-08-16',
+        mode,
+        seed: `category-day-spacing-${mode}`,
+        attempts: 12,
+      });
+
+      // Categories are deliberately independent: prayer today and cooking
+      // tomorrow is allowed; cooking today and cooking tomorrow is not.
+      assertFairRosterSpacing(result);
     },
   );
 
@@ -401,9 +484,13 @@ describe('calendar and reconciliation helpers', () => {
 
     const validEdit = structuredClone(generated.rosters);
     const mondayCookIds = new Set(mondayCook!.memberIds);
+    const adjacentPrayerIds = new Set(generated.metadata.assignments
+      .filter((assignment) => assignment.category === 'prayer'
+        && (assignment.day === 'Sunday' || assignment.day === 'Tuesday'))
+      .flatMap((assignment) => assignment.memberIds));
     const replacement = MEMBERS.slice(0, 8).find(
       (member) => !mondayCookIds.has(member.id)
-        && !mondayPrayer!.memberIds.includes(member.id),
+        && !adjacentPrayerIds.has(member.id),
     );
     expect(replacement).toBeDefined();
     validEdit.prayer_roster.rows[mondayPrayer!.rowIndex].person = replacement!.name;
