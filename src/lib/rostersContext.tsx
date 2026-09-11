@@ -322,6 +322,7 @@ export function RostersProvider({ children }: { children: React.ReactNode }) {
         members: source.members,
         weekStart: source.weekStart,
         mode: readMode(source.allocation),
+        flexible: source.allocation.flexible === true,
         weights: readWeights(source.allocation),
         rosterId,
         rowIndex,
@@ -342,6 +343,7 @@ export function RostersProvider({ children }: { children: React.ReactNode }) {
         members: generatedDraft.members,
         weekStart: generatedDraft.weekStart,
         mode: readMode(metadata),
+        flexible: metadata.flexible === true,
         balancesBefore: readBalanceRecord(
           metadata.balancesBefore || metadata.previousBalances,
         ),
@@ -365,6 +367,7 @@ export function RostersProvider({ children }: { children: React.ReactNode }) {
       members,
       weekStart: activeWeekStart || getCurrentSundayISO(),
       mode: readMode(activeAllocation),
+      flexible: activeAllocation.flexible === true,
       balancesBefore: readBalanceRecord(
         activeAllocation.balancesBefore || activeAllocation.previousBalances,
       ),

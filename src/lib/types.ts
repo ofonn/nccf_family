@@ -84,6 +84,8 @@ export interface WeeklySnapshot {
  * the same JSON object so history remains reproducible as the model evolves.
  */
 export interface WeeklyAllocationMetadata {
+  flexible?: boolean;
+  relaxedRules?: string[];
   /** Display names selected as available, retained for readable history. */
   availableMembers: string[];
   /** Stable participant IDs used for carry-over calculations. */

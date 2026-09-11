@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 import { DEFAULT_ROSTERS } from '@/lib/constants';
+import { generateFairRoster } from '@/lib/fairRoster';
 import { normalizeStoredRosterData } from '@/lib/server/rosterDataStore';
 import type { StoredRosterData } from '@/lib/server/rosterDataStore';
 import type { WeeklyAllocationMetadata } from '@/lib/types';
@@ -75,6 +76,20 @@ describe('roster publication route', () => {
       persisted = normalizeStoredRosterData(data);
       return structuredClone(persisted);
     });
+  });
+
+  it('publishes and reloads a flexible roster with its exceptions', async () => {
+    const generated = generateFairRoster({ rosters: DEFAULT_ROSTERS,
+      members: ['Ada', 'Bola', 'Chidi'].map((name) => ({ id: name, name })),
+      flexible: true, weekStart: '2026-09-13', seed: 'publish-flexible' });
+    const response = await POST(publishRequest({ rosters: generated.rosters,
+      weekStart: '2026-09-13', allocation: generated.metadata }));
+    expect(response.status).toBe(200);
+    const loaded = await (await GET()).json();
+    expect(loaded.rosters).toEqual(generated.rosters);
+    expect(loaded.activeAllocation.flexible).toBe(true);
+    expect(loaded.activeAllocation.relaxedRules).toEqual(generated.metadata.relaxedRules);
+    expect(loaded.snapshots[0].allocation.relaxedRules.length).toBeGreaterThan(0);
   });
 
   it('persists one revision per week and keeps GET read-only', async () => {

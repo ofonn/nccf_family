@@ -34,6 +34,7 @@ export interface FairRosterWeights {
 }
 
 export interface FairRosterInput {
+  flexible?: boolean;
   rosters: RostersMap;
   /** The members selected in the availability dialog for this week. */
   members: FairRosterMember[];
@@ -119,6 +120,7 @@ export interface FairRosterMetadata extends WeeklyAllocationMetadata {
 }
 
 export interface ReconcileFairRosterInput {
+  flexible?: boolean;
   rosters: RostersMap;
   /** The same selected-availability list used when the draft was generated. */
   members: FairRosterMember[];
@@ -207,6 +209,7 @@ export interface FridayNightSchedule {
 }
 
 interface AllocationTask {
+  flexible?: boolean;
   id: string;
   rosterId: FairRosterId;
   rowIndex: number;
@@ -564,6 +567,7 @@ function validateBalances(
 }
 
 function minimumRequiredMembers(tasks: AllocationTask[]): number {
+  if (tasks.some((task) => task.flexible)) return 3;
   let required = 0;
 
   for (const task of tasks) {
@@ -727,6 +731,35 @@ function nonCookingSameDayDuplicates(
   return duplicates;
 }
 
+// Count each exception once per person/day pair, even when prayer has
+// multiple entries that day. The search minimizes these before workload.
+function rotationExceptions(
+  state: AllocationState,
+  tasks: AllocationTask[],
+  members?: FairRosterMember[],
+): string[] {
+  const exceptions = new Set<string>();
+  for (let i = 0; i < tasks.length; i += 1) {
+    for (let j = i + 1; j < tasks.length; j += 1) {
+      const a = tasks[i];
+      const b = tasks[j];
+      if (a.category !== b.category) continue;
+      if (areConsecutiveRosterDays(a.day, b.day)) {
+        for (const member of state[i]) {
+          if (member >= 0 && state[j].includes(member)) {
+            exceptions.add(`${members?.[member]?.name ?? member}: consecutive ${a.category} duties on ${a.day} and ${b.day}.`);
+          }
+        }
+      }
+      if (a.category === 'cooking' && state[i].length === 2 && state[j].length === 2
+        && state[i].every((member) => member >= 0 && state[j].includes(member))) {
+        exceptions.add(`Repeated cooking team on ${a.day} and ${b.day}: ${state[i].map((member) => members?.[member]?.name ?? member).join(' & ')}.`);
+      }
+    }
+  }
+  return [...exceptions];
+}
+
 function scoreAllocation(
   state: AllocationState,
   tasks: AllocationTask[],
@@ -754,6 +787,7 @@ function scoreAllocation(
 
   return {
     values: [
+      ...(tasks.some((task) => task.flexible) ? [rotationExceptions(state, tasks).length] : []),
       maximumAbsolute(weeklyDeviations),
       range(stats.loads),
       sumOfSquares(weeklyDeviations),
@@ -818,6 +852,8 @@ function memberPositionBlockCause(
     if (task.category !== 'cooking' && otherTask.category !== 'cooking') continue;
     if (state[otherIndex].includes(memberIndex)) return 'SAME_DAY_CONFLICT';
   }
+
+  if (task.flexible) return null;
 
   for (let otherIndex = 0; otherIndex < tasks.length; otherIndex += 1) {
     if (otherIndex === taskIndex) continue;
@@ -900,6 +936,7 @@ function partialCandidateScore(
   );
 
   return [
+    ...(tasks.some((task) => task.flexible) ? [rotationExceptions(state, tasks).length] : []),
     range(stats.loads),
     sumOfSquares(stats.loads.map((load) => load - loadTarget)),
     maximumAbsolute(workload),
@@ -1351,6 +1388,8 @@ function finishAllocation(options: {
   return {
     rosters: applyAssignments(sourceRosters, assignments),
     metadata: {
+      flexible: tasks.some((task) => task.flexible),
+      relaxedRules: rotationExceptions(state, tasks, members),
       version: 1,
       mode,
       seed,
@@ -1370,7 +1409,7 @@ function finishAllocation(options: {
     },
     memberSummaries,
     fairness,
-    warnings: options.warnings ?? [],
+    warnings: [...(options.warnings ?? []), ...rotationExceptions(state, tasks, members)],
   };
 }
 
@@ -1431,6 +1470,7 @@ export function reconcileFairRosterMetadata(
   const weights = normalizedWeights(input.weights);
   const mode = normalizedMode(input.mode);
   const tasks = buildTasks(input.rosters, input.weekStart, weights, mode);
+  if (input.flexible) tasks.forEach((task) => { task.flexible = true; });
   const balancesBefore = validateBalances(input.balancesBefore);
   const minimumMembers = minimumRequiredMembers(tasks);
 
@@ -1481,10 +1521,20 @@ export function reconcileFairRosterMetadata(
  * debt, and finally duplicate light duties.
  */
 export function generateFairRoster(input: FairRosterInput): FairRosterResult {
+  if (input.flexible) {
+    try {
+      const strict = generateFairRoster({ ...input, flexible: false });
+      strict.metadata.flexible = true;
+      return strict;
+    } catch (error) {
+      if (!(error instanceof FairRosterError) || error.code !== 'NOT_ENOUGH_AVAILABLE_MEMBERS') throw error;
+    }
+  }
   const members = validateMembers(input.members);
   const weights = normalizedWeights(input.weights);
   const mode = normalizedMode(input.mode);
   const tasks = buildTasks(input.rosters, input.weekStart, weights, mode);
+  if (input.flexible) tasks.forEach((task) => { task.flexible = true; });
   const balancesBefore = validateBalances(input.priorBalances);
   const minimumMembers = minimumRequiredMembers(tasks);
   const attempts = input.attempts ?? 12;
@@ -1594,6 +1644,7 @@ export interface SlotEligibility {
 }
 
 export interface SlotEligibilityInput {
+  flexible?: boolean;
   rosters: RostersMap;
   /** This week's selected available members (IDs must match the roster names). */
   members: FairRosterMember[];
@@ -1626,6 +1677,7 @@ export function getSlotEligibility(input: SlotEligibilityInput): SlotEligibility
     mode = normalizedMode(input.mode);
     if (members.length === 0) return null;
     tasks = buildTasks(input.rosters, input.weekStart, weights, mode);
+    if (input.flexible) tasks.forEach((task) => { task.flexible = true; });
   } catch (error) {
     if (error instanceof FairRosterError) return null;
     throw error;

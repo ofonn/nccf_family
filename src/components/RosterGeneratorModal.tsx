@@ -48,6 +48,7 @@ interface RosterGeneratorModalProps {
     weekStart: string;
     seed: string;
     mode: FairRosterMode;
+    flexible: boolean;
   }) => Promise<RosterGeneratorPreview> | RosterGeneratorPreview;
   onApply: (preview: RosterGeneratorPreview, weekStart: string) => void;
   onDownloadPreview?: (preview: RosterGeneratorPreview, weekStart: string) => void;
@@ -116,6 +117,7 @@ export default function RosterGeneratorModal({
   }, [selectedIds]);
   const [weekStart, setWeekStart] = useState(() => getCurrentSundayISO());
   const [mode, setMode] = useState<FairRosterMode>('weighted');
+  const [flexible, setFlexible] = useState(false);
   const [preview, setPreview] = useState<RosterGeneratorPreview | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -148,8 +150,10 @@ export default function RosterGeneratorModal({
   };
 
   const runGeneration = async () => {
-    if (availableMembers.length < 5) {
-      setError('Select at least five available members. The weekly cooking rotation needs unique teams and a rest day between cooking shifts.');
+    if (availableMembers.length < (flexible ? 3 : 5)) {
+      setError(flexible
+        ? 'Select at least three available members for flexible scheduling.'
+        : 'Select at least five available members. The weekly cooking rotation needs unique teams and a rest day between cooking shifts.');
       return;
     }
 
@@ -163,6 +167,7 @@ export default function RosterGeneratorModal({
         weekStart: normalizedWeek,
         seed: createSeed(),
         mode,
+        flexible,
       });
       setPreview(result);
     } catch (reason) {
@@ -257,6 +262,18 @@ export default function RosterGeneratorModal({
             </div>
           </section>
 
+          <label className="flex items-start gap-3 rounded-xl border border-[var(--card-border)] p-3 text-xs">
+            <input type="checkbox" checked={flexible} onChange={(event) => {
+              setFlexible(event.target.checked);
+              setPreview(null);
+              setError(null);
+            }} />
+            <span>
+              <strong className="block">Flexible small-group scheduling</strong>
+              Start with 3 people. Try the usual rules first, then minimize repeated cooking teams and consecutive-day duties if needed. Exceptions appear in the preview and are saved with the roster.
+            </span>
+          </label>
+
           <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
             <label className="space-y-1.5">
               <span className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wide text-[var(--text-muted)]">
@@ -345,7 +362,7 @@ export default function RosterGeneratorModal({
               })}
             </div>
             <p className="text-[10px] font-medium text-[var(--text-muted)]">
-              Choose at least five people. Cooking teams never repeat; within prayer, cleaning, and cooking, each person gets a day off before the next duty.
+              {flexible ? 'Choose at least three people. Cooking still needs two distinct people, except Sunday. Cooks remain free of other duties that day.' : 'Choose at least five people. Cooking teams never repeat; within prayer, cleaning, and cooking, each person gets a day off before the next duty.'}
               Your last selection is remembered on this device.
             </p>
           </section>
@@ -437,7 +454,7 @@ export default function RosterGeneratorModal({
                 if (preview) onApply(preview, normalizeToSundayISO(weekStart));
                 else void runGeneration();
               }}
-              disabled={isGenerating || availableMembers.length < 5}
+              disabled={isGenerating || availableMembers.length < (flexible ? 3 : 5)}
               className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--nysc-green)] px-4 py-2 text-xs font-extrabold text-white shadow-sm hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {isGenerating ? (

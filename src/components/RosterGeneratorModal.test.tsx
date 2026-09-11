@@ -41,6 +41,19 @@ const preview: RosterGeneratorPreview = {
 };
 
 describe('RosterGeneratorModal', () => {
+  it('allows three members only when flexible scheduling is selected', async () => {
+    const onGenerate = vi.fn(() => preview);
+    render(<RosterGeneratorModal isOpen participants={participants} onClose={vi.fn()}
+      onGenerate={onGenerate} onApply={vi.fn()} />);
+    for (const name of ['Ada', 'Bola', 'Chidi']) fireEvent.click(screen.getByRole('button', { name }));
+    expect((screen.getByRole('button', { name: 'Generate' }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByRole('checkbox', { name: /Flexible small-group scheduling/ }));
+    expect((screen.getByRole('button', { name: 'Generate' }) as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
+    await screen.findByText('Fairness preview');
+    expect(onGenerate).toHaveBeenCalledWith(expect.objectContaining({ flexible: true,
+      availableMembers: participants.slice(0, 3) }));
+  });
   it('submits only the selected available members and applies a generated draft', async () => {
     const onGenerate = vi.fn((input: {
       availableMembers: Participant[];

@@ -127,7 +127,7 @@ export default function HomePage() {
           isOpen
           participants={participants}
           onClose={() => setIsGeneratorOpen(false)}
-          onGenerate={async ({ availableMembers, weekStart, seed, mode }): Promise<RosterGeneratorPreview> => {
+          onGenerate={async ({ availableMembers, weekStart, seed, mode, flexible }): Promise<RosterGeneratorPreview> => {
             // Yield once so the modal can paint its balancing state before the
             // deterministic local search runs on the browser's main thread.
             await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
@@ -136,6 +136,7 @@ export default function HomePage() {
               members: availableMembers,
               weekStart,
               mode,
+              flexible,
               priorBalances: getPriorBalancesForWeek(weekStart, mode),
               seed,
               generatedAt: new Date().toISOString(),
