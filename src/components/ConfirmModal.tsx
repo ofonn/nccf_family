@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { AlertTriangle } from 'lucide-react';
 
 interface ConfirmModalProps {
@@ -25,9 +26,17 @@ export default function ConfirmModal({
   onCancel,
 }: ConfirmModalProps) {
   if (!isOpen) return null;
+  if (typeof document === 'undefined') return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+  // Portal to <body> so the dialog always paints above other modals.
+  // Rendered inline it would be trapped inside an ancestor stacking
+  // context (e.g. the sticky navbar) and appear blurred underneath the
+  // modal that opened it.
+  return createPortal(
+    <div
+      data-testid="confirm-overlay"
+      className="fixed inset-0 z-[20000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in"
+    >
       <div className="w-full max-w-sm bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl p-6 shadow-2xl space-y-4">
         <div className="flex items-center gap-3">
           <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isDangerous ? 'bg-red-500/20 text-red-500' : 'bg-[var(--nysc-gold-light)] text-[var(--nysc-gold)]'}`}>
@@ -66,6 +75,7 @@ export default function ConfirmModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

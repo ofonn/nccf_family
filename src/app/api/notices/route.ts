@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import https from 'https';
 import { Notice } from '@/lib/types';
-
-const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\s+/g, '');
-const SUPABASE_SERVICE_KEY = (process.env.SUPABASE_SERVICE_KEY || '').replace(/\s+/g, '');
+import { readSupabaseConfig } from '@/lib/server/supabaseEnv';
 
 const HASHES = {
   master: "9d598ba5b4f3fda46daa17f9c0ff96ce72f6c6390a8b0488fcbc2ddd57dcdc0a",
@@ -68,12 +66,13 @@ function fetchIPv4(url: string, options: any = {}): Promise<any> {
 }
 
 async function loadFullData() {
-  if (SUPABASE_URL && SUPABASE_SERVICE_KEY) {
+  const { url, serviceKey } = readSupabaseConfig();
+  if (url && serviceKey) {
     try {
-      const res = await fetchIPv4(`${SUPABASE_URL}/rest/v1/rosters_data?id=eq.1&select=data`, {
+      const res = await fetchIPv4(`${url}/rest/v1/rosters_data?id=eq.1&select=data`, {
         headers: {
-          'apikey': SUPABASE_SERVICE_KEY,
-          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`
+          'apikey': serviceKey,
+          'Authorization': `Bearer ${serviceKey}`
         }
       });
       const data = await res.json();
@@ -88,12 +87,13 @@ async function loadFullData() {
 }
 
 async function saveFullData(payload: any) {
-  if (SUPABASE_URL && SUPABASE_SERVICE_KEY) {
-    const res = await fetchIPv4(`${SUPABASE_URL}/rest/v1/rosters_data?id=eq.1`, {
+  const { url, serviceKey } = readSupabaseConfig();
+  if (url && serviceKey) {
+    const res = await fetchIPv4(`${url}/rest/v1/rosters_data?id=eq.1`, {
       method: 'PATCH',
       headers: {
-        'apikey': SUPABASE_SERVICE_KEY,
-        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+        'apikey': serviceKey,
+        'Authorization': `Bearer ${serviceKey}`,
         'Content-Type': 'application/json',
         'Prefer': 'return=minimal'
       },

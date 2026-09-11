@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Save, XCircle, RotateCcw, Download } from 'lucide-react';
+import { Save, XCircle, Download } from 'lucide-react';
 import ConfirmModal from '@/components/ConfirmModal';
 import { useToast } from '@/lib/toastContext';
 import { useRosters } from '@/lib/rostersContext';
@@ -24,11 +24,11 @@ export default function ControlDock({
 
   const handleConfirmSave = async () => {
     setActiveModal(null);
-    const success = await saveChanges();
-    if (success) {
+    const result = await saveChanges();
+    if (result.success) {
       showToast('Roster changes published successfully!', 'success');
     } else {
-      showToast('Failed to save changes.', 'error');
+      showToast(result.error || 'Failed to save changes.', 'error');
     }
   };
 

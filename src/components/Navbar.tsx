@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation';
 import { Sun, Moon, Edit, LogOut, Home, Sparkles, BookOpen, Brush, Utensils, Eye, EyeOff, History, Megaphone } from 'lucide-react';
 import { useAuth } from '@/lib/authContext';
 import { useTheme } from '@/lib/themeContext';
+import ParticipantManager from '@/components/ParticipantManager';
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -91,6 +92,8 @@ export default function Navbar() {
 
           {/* Controls: Theme Toggle, Tucked History Icon & Auth */}
           <div className="flex items-center gap-2">
+            {authRole === 'master' && <ParticipantManager />}
+
             <button
               onClick={toggleTheme}
               className="p-2 rounded-full border border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text-primary)] hover:bg-[var(--nysc-gold-light)] transition-colors"

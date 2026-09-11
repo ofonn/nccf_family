@@ -1,10 +1,13 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Roster, RosterRow, RosterColumnKey } from '@/lib/types';
 import { PREDEFINED_SUGGESTIONS, DEFAULT_ROSTERS } from '@/lib/constants';
-import { Check, Edit3, Plus } from 'lucide-react';
+import { AlertTriangle, Check, Edit3, Plus } from 'lucide-react';
+import { useParticipants } from '@/lib/participantsContext';
+import { useRosters } from '@/lib/rostersContext';
+import type { SlotEligibility } from '@/lib/fairRoster';
 
 interface RosterCardProps {
   roster: Roster;
@@ -20,7 +23,19 @@ interface ActiveCellRef {
 }
 
 export default function RosterCard({ roster, hasEditAccess, onCellChange, savedRows }: RosterCardProps) {
+  const { participantNames } = useParticipants();
+  const { getSlotEligibility } = useRosters();
   const [activeDropdown, setActiveDropdown] = useState<ActiveCellRef | null>(null);
+
+  // Rule preview for the open member cell: who can fill this exact slot
+  // without breaking cooking, team-rotation, or rest-day rules. Null means
+  // no allocation context (e.g. Glorious Service) — show the plain list.
+  const slotEligibility = useMemo(() => {
+    if (!activeDropdown || !hasEditAccess) return null;
+    const column = roster.columns.find((col) => col.key === activeDropdown.colKey);
+    if (!column || column.list !== 'members') return null;
+    return getSlotEligibility(roster.id, activeDropdown.rowIndex);
+  }, [activeDropdown, getSlotEligibility, hasEditAccess, roster]);
   const [activeInputCell, setActiveInputCell] = useState<{ rowIndex: number; colKey: RosterColumnKey } | null>(null);
   const clickTimerRef = useRef<{
     lastTime: number;
@@ -139,7 +154,6 @@ export default function RosterCard({ roster, hasEditAccess, onCellChange, savedR
           activeInputCell={activeInputCell}
           onCellClick={handleCellClick}
           onCellChange={onCellChange}
-          setActiveDropdown={setActiveDropdown}
           setActiveInputCell={setActiveInputCell}
           roster={roster}
         />
@@ -157,7 +171,6 @@ export default function RosterCard({ roster, hasEditAccess, onCellChange, savedR
               activeInputCell={activeInputCell}
               onCellClick={handleCellClick}
               onCellChange={onCellChange}
-              setActiveDropdown={setActiveDropdown}
               setActiveInputCell={setActiveInputCell}
               roster={roster}
             />
@@ -179,6 +192,8 @@ export default function RosterCard({ roster, hasEditAccess, onCellChange, savedR
             activeCell={activeDropdown}
             columns={roster.columns}
             currentValue={roster.rows[activeDropdown.rowIndex]?.[activeDropdown.colKey] || ''}
+            participantNames={participantNames}
+            eligibility={slotEligibility}
             onSelect={(newVal) => {
               onCellChange(roster.id, activeDropdown.rowIndex, activeDropdown.colKey, newVal);
               setActiveDropdown(null);
@@ -211,7 +226,6 @@ interface RenderTableGroupProps {
   activeInputCell: { rowIndex: number; colKey: RosterColumnKey } | null;
   onCellClick: (e: React.MouseEvent<HTMLTableCellElement>, rowIndex: number, colKey: RosterColumnKey) => void;
   onCellChange: (rosterId: string, rowIndex: number, colKey: RosterColumnKey, newValue: string) => void;
-  setActiveDropdown: (val: ActiveCellRef | null) => void;
   setActiveInputCell: (val: { rowIndex: number; colKey: RosterColumnKey } | null) => void;
   roster: Roster;
 }
@@ -226,7 +240,6 @@ function RenderTableGroup({
   activeInputCell,
   onCellClick,
   onCellChange,
-  setActiveDropdown,
   setActiveInputCell,
   roster,
 }: RenderTableGroupProps) {
@@ -355,17 +368,25 @@ interface PortalDropdownPopoverProps {
   activeCell: ActiveCellRef;
   columns: Roster['columns'];
   currentValue: string;
+  participantNames: string[];
+  eligibility?: SlotEligibility[] | null;
   onSelect: (val: string) => void;
   onSwitchToInput: () => void;
   onAppendPartner: () => void;
 }
 
-function PortalDropdownPopover({ activeCell, columns, currentValue, onSelect, onSwitchToInput, onAppendPartner }: PortalDropdownPopoverProps) {
+function normalizeName(value: string): string {
+  return value.trim().toLocaleLowerCase().replace(/\s+/g, ' ');
+}
+
+function PortalDropdownPopover({ activeCell, columns, currentValue, participantNames, eligibility, onSelect, onSwitchToInput, onAppendPartner }: PortalDropdownPopoverProps) {
   const colDef = columns.find(c => c.key === activeCell.colKey);
   const suggestions = new Set<string>();
 
-  if (colDef?.list && PREDEFINED_SUGGESTIONS[colDef.list]) {
-    PREDEFINED_SUGGESTIONS[colDef.list].forEach((s) => suggestions.add(s));
+  if (colDef?.list === 'members') {
+    participantNames.forEach((name) => suggestions.add(name));
+  } else if (colDef?.list && PREDEFINED_SUGGESTIONS[colDef.list]) {
+    PREDEFINED_SUGGESTIONS[colDef.list].forEach((suggestion) => suggestions.add(suggestion));
   }
 
   if (colDef?.isTime) {
@@ -386,9 +407,25 @@ function PortalDropdownPopover({ activeCell, columns, currentValue, onSelect, on
 
   const rect = activeCell.rect;
   const popoverWidth = Math.max(220, rect.width);
-  let top = rect.bottom + window.scrollY + 4;
+  const top = rect.bottom + window.scrollY + 4;
   let left = Math.min(rect.left + window.scrollX, window.innerWidth - popoverWidth - 16);
   left = Math.max(16, left);
+
+  const showEligibility = colDef?.list === 'members' && Array.isArray(eligibility) && eligibility.length > 0;
+  const eligibilityByName = new Map((eligibility ?? []).map((entry) => [normalizeName(entry.name), entry]));
+  const eligibleEntries = (eligibility ?? []).filter((entry) => entry.eligible);
+  const ineligibleEntries = (eligibility ?? []).filter((entry) => !entry.eligible);
+  const otherNames = showEligibility
+    ? suggestionList.filter((name) => !eligibilityByName.has(normalizeName(name)))
+    : [];
+
+  const pickName = (item: string) => {
+    let finalVal = item;
+    if (currentValue.endsWith('& ')) {
+      finalVal = `${currentValue}${item}`;
+    }
+    onSelect(finalVal);
+  };
 
   return (
     <div
@@ -401,23 +438,87 @@ function PortalDropdownPopover({ activeCell, columns, currentValue, onSelect, on
       }}
       className="z-[9999] max-h-60 overflow-y-auto bg-white dark:bg-[#1C2541] border border-black/20 dark:border-white/20 rounded-xl shadow-[0_16px_48px_-8px_rgba(0,0,0,0.4)] p-1.5 text-xs animate-in fade-in-0 zoom-in-95 duration-150"
     >
-      {suggestionList.map((item) => (
-        <div
-          key={item}
-          onClick={(e) => {
-            e.stopPropagation();
-            let finalVal = item;
-            if (currentValue.endsWith('& ')) {
-              finalVal = `${currentValue}${item}`;
-            }
-            onSelect(finalVal);
-          }}
-          className="px-3.5 py-2.5 rounded-lg text-slate-900 dark:text-slate-100 hover:bg-emerald-500/20 cursor-pointer font-bold flex items-center justify-between transition-colors"
-        >
-          <span>{item}</span>
-          {currentValue.includes(item) && <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />}
-        </div>
-      ))}
+      {showEligibility ? (
+        <>
+          <p className="px-3 pt-1.5 pb-1 text-[10px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+            Can fill this slot ({eligibleEntries.length})
+          </p>
+          {eligibleEntries.map((entry) => (
+            <div
+              key={entry.memberId}
+              onClick={(e) => {
+                e.stopPropagation();
+                pickName(entry.name);
+              }}
+              className="px-3.5 py-2.5 rounded-lg text-slate-900 dark:text-slate-100 hover:bg-emerald-500/20 cursor-pointer font-bold flex items-center justify-between transition-colors"
+            >
+              <span>{entry.name}</span>
+              {currentValue.includes(entry.name)
+                ? <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                : <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" title="Fits the roster rules" />}
+            </div>
+          ))}
+          {ineligibleEntries.length > 0 && (
+            <>
+              <p className="px-3 pt-2 pb-1 text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-300">
+                Would break a rule ({ineligibleEntries.length})
+              </p>
+              {ineligibleEntries.map((entry) => (
+                <div
+                  key={entry.memberId}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    pickName(entry.name);
+                  }}
+                  className="px-3.5 py-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-amber-500/10 cursor-pointer transition-colors"
+                >
+                  <span className="flex items-center justify-between gap-2 font-bold">
+                    <span>{entry.name}</span>
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                  </span>
+                  {entry.reason && (
+                    <span className="mt-0.5 block text-[10px] font-semibold opacity-80">{entry.reason}</span>
+                  )}
+                </div>
+              ))}
+            </>
+          )}
+          {otherNames.length > 0 && (
+            <>
+              <p className="px-3 pt-2 pb-1 text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                Not in this week&apos;s selection ({otherNames.length})
+              </p>
+              {otherNames.map((item) => (
+                <div
+                  key={item}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    pickName(item);
+                  }}
+                  className="px-3.5 py-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer font-semibold flex items-center justify-between transition-colors opacity-75"
+                >
+                  <span>{item}</span>
+                  {currentValue.includes(item) && <Check className="w-4 h-4 shrink-0" />}
+                </div>
+              ))}
+            </>
+          )}
+        </>
+      ) : (
+        suggestionList.map((item) => (
+          <div
+            key={item}
+            onClick={(e) => {
+              e.stopPropagation();
+              pickName(item);
+            }}
+            className="px-3.5 py-2.5 rounded-lg text-slate-900 dark:text-slate-100 hover:bg-emerald-500/20 cursor-pointer font-bold flex items-center justify-between transition-colors"
+          >
+            <span>{item}</span>
+            {currentValue.includes(item) && <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />}
+          </div>
+        ))
+      )}
 
       <div className="border-t border-slate-200 dark:border-slate-700/60 mt-1.5 pt-1.5 space-y-0.5">
         {colDef?.list === 'members' && (
