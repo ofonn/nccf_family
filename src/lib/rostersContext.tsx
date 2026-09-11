@@ -14,11 +14,13 @@ import { useAuth } from '@/lib/authContext';
 import { useParticipants } from '@/lib/participantsContext';
 import {
   deserializeFairRosterWeights,
+  getSlotEligibility,
   reconcileFairRosterMetadata,
   type FairRosterBalance,
   type FairRosterMetadata,
   type FairRosterMode,
   type FairRosterWeights,
+  type SlotEligibility,
 } from '@/lib/fairRoster';
 import { selectPriorFairRosterBalances } from '@/lib/fairRosterHistory';
 import { getCurrentSundayISO } from '@/lib/rosterCalendar';
@@ -59,6 +61,7 @@ interface RostersContextType {
     weekStart: string,
     mode?: FairRosterMode,
   ) => Record<string, FairRosterBalance>;
+  getSlotEligibility: (rosterId: string, rowIndex: number) => SlotEligibility[] | null;
   saveChanges: () => Promise<RosterSaveResult>;
   cancelEdits: () => void;
   resetDefaults: () => Promise<boolean>;
@@ -76,6 +79,7 @@ const RostersContext = createContext<RostersContextType>({
   handleCellChange: () => {},
   applyGeneratedDraft: () => {},
   getPriorBalancesForWeek: () => ({}),
+  getSlotEligibility: () => null,
   saveChanges: async () => ({ success: false }),
   cancelEdits: () => {},
   resetDefaults: async () => false,
@@ -283,6 +287,50 @@ export function RostersProvider({ children }: { children: React.ReactNode }) {
     setGeneratedDraft(null);
   };
 
+  const getSlotEligibilityForCell = useCallback((
+    rosterId: string,
+    rowIndex: number,
+  ): SlotEligibility[] | null => {
+    // Eligibility only applies to allocator-managed rosters; Glorious
+    // Service is never auto-assigned, so it keeps its plain member list.
+    if (
+      rosterId !== 'prayer_roster'
+      && rosterId !== 'cleaning_roster'
+      && rosterId !== 'cooking_roster'
+    ) return null;
+
+    // Prefer the in-progress draft (what the user is reviewing right now),
+    // falling back to the last published allocation.
+    const source = generatedDraft
+      ? {
+        members: generatedDraft.members,
+        weekStart: generatedDraft.weekStart,
+        allocation: generatedDraft.allocation,
+      }
+      : activeAllocation
+        ? {
+          members: membersForMetadata(activeAllocation, participants),
+          weekStart: activeWeekStart || getCurrentSundayISO(),
+          allocation: activeAllocation,
+        }
+        : null;
+    if (!source || source.members.length === 0) return null;
+
+    try {
+      return getSlotEligibility({
+        rosters,
+        members: source.members,
+        weekStart: source.weekStart,
+        mode: readMode(source.allocation),
+        weights: readWeights(source.allocation),
+        rosterId,
+        rowIndex,
+      });
+    } catch {
+      return null;
+    }
+  }, [activeAllocation, activeWeekStart, generatedDraft, participants, rosters]);
+
   const reconcileAllocation = (): FairRosterMetadata | null => {
     if (authRole === 'none') return null;
 
@@ -429,6 +477,7 @@ export function RostersProvider({ children }: { children: React.ReactNode }) {
       handleCellChange,
       applyGeneratedDraft,
       getPriorBalancesForWeek,
+      getSlotEligibility: getSlotEligibilityForCell,
       saveChanges,
       cancelEdits,
       resetDefaults,

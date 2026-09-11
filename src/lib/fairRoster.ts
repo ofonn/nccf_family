@@ -775,19 +775,40 @@ function compareScores(left: ObjectiveScore, right: ObjectiveScore): number {
   return 0;
 }
 
-function isValidMemberAtPosition(
+export type SlotBlockCause =
+  | 'DUPLICATE_SLOT'
+  | 'SAME_DAY_CONFLICT'
+  | 'CONSECUTIVE_DAY'
+  | 'REPEATED_PAIR';
+
+const SLOT_BLOCK_REASONS: Record<SlotBlockCause, string> = {
+  DUPLICATE_SLOT: 'Already covers this slot',
+  SAME_DAY_CONFLICT: 'Already on duty that day',
+  CONSECUTIVE_DAY: 'Needs a rest day between duties',
+  REPEATED_PAIR: 'That cooking pair already served this week',
+};
+
+export function describeSlotBlock(cause: SlotBlockCause): string {
+  return SLOT_BLOCK_REASONS[cause];
+}
+
+/**
+ * Same rule set as isValidMemberAtPosition, but reports which rule blocks the
+ * member so the UI can preview eligibility per slot.
+ */
+function memberPositionBlockCause(
   state: AllocationState,
   tasks: AllocationTask[],
   taskIndex: number,
   position: number,
   memberIndex: number,
-): boolean {
+): SlotBlockCause | null {
   const task = tasks[taskIndex];
 
   if (state[taskIndex].some(
     (assignedMember, assignedPosition) => assignedPosition !== position && assignedMember === memberIndex,
   )) {
-    return false;
+    return 'DUPLICATE_SLOT';
   }
 
   for (let otherIndex = 0; otherIndex < tasks.length; otherIndex += 1) {
@@ -795,7 +816,7 @@ function isValidMemberAtPosition(
     const otherTask = tasks[otherIndex];
     if (normalizeText(otherTask.day) !== normalizeText(task.day)) continue;
     if (task.category !== 'cooking' && otherTask.category !== 'cooking') continue;
-    if (state[otherIndex].includes(memberIndex)) return false;
+    if (state[otherIndex].includes(memberIndex)) return 'SAME_DAY_CONFLICT';
   }
 
   for (let otherIndex = 0; otherIndex < tasks.length; otherIndex += 1) {
@@ -803,7 +824,7 @@ function isValidMemberAtPosition(
     const otherTask = tasks[otherIndex];
     if (otherTask.category !== task.category) continue;
     if (!areConsecutiveRosterDays(task.day, otherTask.day)) continue;
-    if (state[otherIndex].includes(memberIndex)) return false;
+    if (state[otherIndex].includes(memberIndex)) return 'CONSECUTIVE_DAY';
   }
 
   if (task.category === 'cooking' && task.assigneeCount === 2) {
@@ -818,12 +839,22 @@ function isValidMemberAtPosition(
         if (otherTask.category !== 'cooking' || otherTask.assigneeCount !== 2) continue;
         if (otherPair.length !== 2 || otherPair.some((index) => index < 0)) continue;
         const otherPairKey = [...otherPair].sort((left, right) => left - right).join(':');
-        if (otherPairKey === cookingPairKey) return false;
+        if (otherPairKey === cookingPairKey) return 'REPEATED_PAIR';
       }
     }
   }
 
-  return true;
+  return null;
+}
+
+function isValidMemberAtPosition(
+  state: AllocationState,
+  tasks: AllocationTask[],
+  taskIndex: number,
+  position: number,
+  memberIndex: number,
+): boolean {
+  return memberPositionBlockCause(state, tasks, taskIndex, position, memberIndex) === null;
 }
 
 function stateIsCompleteAndValid(
@@ -1551,5 +1582,129 @@ export function generateFairRoster(input: FairRosterInput): FairRosterResult {
     canonicalWeek,
     generatedAt: input.generatedAt,
     warnings,
+  });
+}
+
+export interface SlotEligibility {
+  memberId: string;
+  name: string;
+  eligible: boolean;
+  /** Short human reason shown when eligible is false. */
+  reason?: string;
+}
+
+export interface SlotEligibilityInput {
+  rosters: RostersMap;
+  /** This week's selected available members (IDs must match the roster names). */
+  members: FairRosterMember[];
+  /** Any date in the target Sunday-to-Saturday week, in YYYY-MM-DD format. */
+  weekStart: string;
+  mode?: FairRosterMode;
+  weights?: FairRosterWeights;
+  rosterId: string;
+  rowIndex: number;
+}
+
+/**
+ * Previews, for one roster cell, which available members can fill it without
+ * breaking a cooking, team-rotation, or rest-day rule. All other cells are
+ * held fixed, so the answer matches what a save-time reconcile would accept.
+ *
+ * Returns null when eligibility cannot be determined: unknown roster rows
+ * (e.g. Glorious Service, which the allocator never touches) or cells that
+ * currently hold custom names outside the available-member list.
+ */
+export function getSlotEligibility(input: SlotEligibilityInput): SlotEligibility[] | null {
+  let members: FairRosterMember[];
+  let weights: FairRosterWeights;
+  let mode: FairRosterMode;
+  let tasks: AllocationTask[];
+
+  try {
+    members = validateMembers(input.members);
+    weights = normalizedWeights(input.weights);
+    mode = normalizedMode(input.mode);
+    if (members.length === 0) return null;
+    tasks = buildTasks(input.rosters, input.weekStart, weights, mode);
+  } catch (error) {
+    if (error instanceof FairRosterError) return null;
+    throw error;
+  }
+
+  const taskIndex = tasks.findIndex(
+    (task) => task.rosterId === input.rosterId && task.rowIndex === input.rowIndex,
+  );
+  if (taskIndex < 0) return null;
+
+  // The current board must parse cleanly, otherwise per-member substitution
+  // has no trustworthy base to test against.
+  let baseState: AllocationState;
+  try {
+    baseState = emptyState(tasks);
+    tasks.forEach((task, index) => {
+      const row = input.rosters[task.rosterId].rows[task.rowIndex];
+      baseState[index] = parseAssignedMemberIndexes(row?.person, members, task);
+    });
+  } catch (error) {
+    if (error instanceof FairRosterError) return null;
+    throw error;
+  }
+
+  const task = tasks[taskIndex];
+
+  const testSingle = (memberIndex: number): SlotBlockCause | null => {
+    const candidate = cloneState(baseState);
+    candidate[taskIndex] = [memberIndex];
+    if (stateIsCompleteAndValid(candidate, tasks, members.length)) return null;
+    return memberPositionBlockCause(candidate, tasks, taskIndex, 0, memberIndex)
+      ?? 'SAME_DAY_CONFLICT';
+  };
+
+  const testPairMember = (memberIndex: number): SlotBlockCause | null => {
+    const currentPair = baseState[taskIndex];
+    const partners: number[] = [];
+    for (const occupant of currentPair) {
+      if (occupant >= 0 && occupant !== memberIndex && !partners.includes(occupant)) {
+        partners.push(occupant);
+      }
+    }
+    for (let partner = 0; partner < members.length; partner += 1) {
+      if (partner !== memberIndex && !partners.includes(partner)) partners.push(partner);
+    }
+
+    const causes = new Map<SlotBlockCause, number>();
+    for (const partner of partners) {
+      const candidate = cloneState(baseState);
+      candidate[taskIndex] = [memberIndex, partner];
+      if (stateIsCompleteAndValid(candidate, tasks, members.length)) return null;
+      const cause = memberPositionBlockCause(candidate, tasks, taskIndex, 0, memberIndex)
+        ?? memberPositionBlockCause(candidate, tasks, taskIndex, 1, partner)
+        ?? 'SAME_DAY_CONFLICT';
+      causes.set(cause, (causes.get(cause) ?? 0) + 1);
+    }
+
+    let topCause: SlotBlockCause = 'SAME_DAY_CONFLICT';
+    let topCount = -1;
+    causes.forEach((count, cause) => {
+      if (count > topCount) {
+        topCount = count;
+        topCause = cause;
+      }
+    });
+    return topCause;
+  };
+
+  return members.map((member, memberIndex) => {
+    const block = task.assigneeCount === 2
+      ? testPairMember(memberIndex)
+      : testSingle(memberIndex);
+    return block === null
+      ? { memberId: member.id, name: member.name, eligible: true }
+      : {
+        memberId: member.id,
+        name: member.name,
+        eligible: false,
+        reason: describeSlotBlock(block),
+      };
   });
 }

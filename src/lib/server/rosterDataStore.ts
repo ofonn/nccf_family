@@ -11,6 +11,7 @@ import type {
   WeeklySnapshot,
 } from '@/lib/types';
 import { normalizeToSundayISO } from '@/lib/rosterCalendar';
+import { readSupabaseConfig } from './supabaseEnv';
 
 const REQUEST_TIMEOUT_MS = 15_000;
 
@@ -169,8 +170,9 @@ export function normalizeStoredRosterData(value: unknown): StoredRosterData {
 }
 
 function getSupabaseConfig(): { url: string; serviceKey: string } {
-  const url = (process.env.SUPABASE_URL || '').trim().replace(/\/+$/, '');
-  const serviceKey = (process.env.SUPABASE_SERVICE_KEY || '').trim();
+  // sanitizeSupabase* strips pasted whitespace/newlines/quotes that Node
+  // would otherwise reject as "Invalid character in header content".
+  const { url, serviceKey } = readSupabaseConfig();
 
   if (!url || !serviceKey) {
     throw new RosterPersistenceError(

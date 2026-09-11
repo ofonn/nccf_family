@@ -4,9 +4,7 @@ import https from 'https';
 import { DEFAULT_PARTICIPANT_NAMES } from '@/lib/constants';
 import { getFallbackParticipantId } from '@/lib/participants';
 import type { Participant } from '@/lib/types';
-
-const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\s+/g, '');
-const SUPABASE_SERVICE_KEY = (process.env.SUPABASE_SERVICE_KEY || '').replace(/\s+/g, '');
+import { readSupabaseConfig } from './supabaseEnv';
 
 interface HttpResult {
   ok: boolean;
@@ -30,6 +28,8 @@ export class ParticipantsRepositoryError extends Error {
 }
 
 function requestSupabase(url: string, options: { method?: string; body?: string } = {}): Promise<HttpResult> {
+  // Read env lazily so pasted-value sanitizing in supabaseEnv always applies.
+  const { serviceKey } = readSupabaseConfig();
   return new Promise((resolve, reject) => {
     const target = new URL(url);
     const request = https.request({
@@ -39,8 +39,8 @@ function requestSupabase(url: string, options: { method?: string; body?: string 
       method: options.method || 'GET',
       family: 4,
       headers: {
-        apikey: SUPABASE_SERVICE_KEY,
-        Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
+        apikey: serviceKey,
+        Authorization: `Bearer ${serviceKey}`,
         'Content-Type': 'application/json',
         Prefer: 'return=representation',
       },
@@ -93,14 +93,19 @@ function fallbackParticipants(): Participant[] {
 }
 
 export function isParticipantPersistenceAvailable(): boolean {
-  return Boolean(SUPABASE_URL && SUPABASE_SERVICE_KEY);
+  const { url, serviceKey } = readSupabaseConfig();
+  return Boolean(url && serviceKey);
+}
+
+function participantsBaseUrl(): string {
+  return readSupabaseConfig().url;
 }
 
 export async function listParticipants(): Promise<Participant[]> {
   if (!isParticipantPersistenceAvailable()) return fallbackParticipants();
 
   const response = await requestSupabase(
-    `${SUPABASE_URL}/rest/v1/participants?select=id,name&order=name.asc`,
+    `${participantsBaseUrl()}/rest/v1/participants?select=id,name&order=name.asc`,
   );
   if (!response.ok) {
     throw new ParticipantsRepositoryError('Unable to load house members.', response.status);
@@ -115,7 +120,7 @@ export async function createParticipant(name: string): Promise<Participant> {
   }
 
   const response = await requestSupabase(
-    `${SUPABASE_URL}/rest/v1/participants?select=id,name`,
+    `${participantsBaseUrl()}/rest/v1/participants?select=id,name`,
     { method: 'POST', body: JSON.stringify({ name }) },
   );
   if (!response.ok) {
@@ -138,7 +143,7 @@ export async function deleteParticipant(id: string): Promise<void> {
   }
 
   const response = await requestSupabase(
-    `${SUPABASE_URL}/rest/v1/participants?id=eq.${encodeURIComponent(id)}&select=id,name`,
+    `${participantsBaseUrl()}/rest/v1/participants?id=eq.${encodeURIComponent(id)}&select=id,name`,
     { method: 'DELETE' },
   );
   if (!response.ok) {
