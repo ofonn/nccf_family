@@ -72,4 +72,25 @@ describe('ParticipantManager', () => {
     );
     expect(screen.getByRole('dialog', { name: 'House Members' })).toBeTruthy();
   });
+
+  it('portals the remove confirmation above ancestor stacking contexts', async () => {
+    mocks.removeParticipant.mockResolvedValue({ success: true });
+    // Simulate the sticky navbar: a positioned ancestor with its own
+    // z-index traps non-portalled overlays underneath body-level modals.
+    render(
+      <div style={{ position: 'sticky', zIndex: 40 }}>
+        <ParticipantManager />
+      </div>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Manage house members' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Ada' }));
+
+    const overlay = await screen.findByTestId('confirm-overlay');
+    expect(overlay.parentElement).toBe(document.body);
+    expect(screen.getByText('Remove Ada?')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove member' }));
+    await waitFor(() => expect(mocks.removeParticipant).toHaveBeenCalledWith('ada-id'));
+  });
 });
