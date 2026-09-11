@@ -60,6 +60,30 @@ function createSeed(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
+// Local-only memory of the last availability selection. Nothing is
+// pre-selected on a fresh device; returning users get their last group.
+const SELECTION_STORAGE_KEY = 'nccf_fair_roster_selection_v1';
+
+function readStoredSelection(): string[] | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(SELECTION_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return null;
+    return parsed.filter((id): id is string => typeof id === 'string');
+  } catch {
+    return null;
+  }
+}
+
+function initialSelection(participants: Participant[]): Set<string> {
+  const stored = readStoredSelection();
+  if (!stored) return new Set();
+  const knownIds = new Set(participants.map((participant) => participant.id));
+  return new Set(stored.filter((id) => knownIds.has(id)));
+}
+
 function safeWeekLabel(value: string): string {
   try {
     return getWeekLabel(value);
@@ -77,8 +101,19 @@ export default function RosterGeneratorModal({
   onDownloadPreview,
 }: RosterGeneratorModalProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(
-    () => new Set(participants.map((participant) => participant.id)),
+    () => initialSelection(participants),
   );
+
+  // Remember the group on this device so the next visit restores it.
+  // New/removed members are reconciled against the stored IDs gracefully:
+  // unknown IDs are dropped, new members start unselected.
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(SELECTION_STORAGE_KEY, JSON.stringify([...selectedIds]));
+    } catch {
+      // Private-mode storage failures must never break the modal.
+    }
+  }, [selectedIds]);
   const [weekStart, setWeekStart] = useState(() => getCurrentSundayISO());
   const [mode, setMode] = useState<FairRosterMode>('weighted');
   const [preview, setPreview] = useState<RosterGeneratorPreview | null>(null);
@@ -311,6 +346,7 @@ export default function RosterGeneratorModal({
             </div>
             <p className="text-[10px] font-medium text-[var(--text-muted)]">
               Choose at least five people. Cooking teams never repeat; within prayer, cleaning, and cooking, each person gets a day off before the next duty.
+              Your last selection is remembered on this device.
             </p>
           </section>
 
